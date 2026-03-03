@@ -5,7 +5,7 @@
   <p><strong>A Premium, Dynamic, and Fully-Featured Web Experience for the National Cadet Corps of Sri Sairam Engineering College</strong></p>
   <i>Designed and Developed independently by <b>Ash-lash</b></i>
   <br><br>
-  <p>OFFICIAL WEBSITE OF SAIRAM NCC <a href="http://sairamncc.in"> Sairam NCC</a></p>
+  <p>OFFICIAL WEBSITE OF <a href="http://sairamncc.in"> Sairam NCC</a></p>
 
   <p>
     React • Firebase • Framer Motion • Styled-Components • GSAP
