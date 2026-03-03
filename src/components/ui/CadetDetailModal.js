@@ -3,12 +3,13 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { X, ExternalLink } from 'lucide-react';
+import { getFullRank } from '../../rankStructure';
 
 // --- STYLES (No Change) ---
 const ModalBackdrop = styled(motion.div)`
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0, 0, 0, 0.7); display: flex;
-  justify-content: center; align-items: center; z-index: 2000;
+  justify-content: center; align-items: center; z-index: 10005;
 `;
 const ModalContent = styled(motion.div)`
   background: white; width: 90%; height: 90%; max-width: 1000px;
@@ -22,6 +23,16 @@ const ModalTitle = styled.h3` margin: 0; font-size: 1.2rem; color: #1A2B4C; `;
 const CloseButton = styled.button` background: none; border: none; cursor: pointer; padding: 0.5rem; line-height: 0; `;
 const PDFViewer = styled.iframe`
   flex-grow: 1; border: none; width: 100%; height: 100%;
+`;
+const OpenPDFButton = styled.a`
+  background: #1A2B4C;
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 700;
+  transition: all 0.2s;
+  &:hover { background: #111d35; transform: translateY(-2px); }
 `;
 const EmptyStateContainer = styled.div`
   flex-grow: 1; display: flex; flex-direction: column; justify-content: center;
@@ -46,7 +57,7 @@ const ActionButton = styled.a`
 // ---
 
 const CadetDetailModal = ({ isOpen, onClose, cadet }) => {
-  
+
   // --- THE FINAL, SIMPLE LOGIC ---
   // We just use the URL directly from the database.
   const pdfUrlToDisplay = cadet ? cadet.pdfURL : '';
@@ -56,10 +67,10 @@ const CadetDetailModal = ({ isOpen, onClose, cadet }) => {
     <AnimatePresence>
       {isOpen && cadet && (
         <ModalBackdrop initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <ModalContent 
-            initial={{ scale: 0.7, opacity: 0 }} 
-            animate={{ scale: 1, opacity: 1 }} 
-            exit={{ scale: 0.7, opacity: 0 }} 
+          <ModalContent
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.7, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
           >
             <ModalHeader>
@@ -78,10 +89,25 @@ const CadetDetailModal = ({ isOpen, onClose, cadet }) => {
                 <CloseButton onClick={onClose}><X size={24} /></CloseButton>
               </HeaderActions>
             </ModalHeader>
-            
+
             {pdfUrlToDisplay ? (
-              // The iframe uses the simple, reliable URL
-              <PDFViewer src={pdfUrlToDisplay} title={`${cadet.Name}'s Details`} />
+              <div style={{ flexGrow: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                <PDFViewer
+                  src={pdfUrlToDisplay}
+                  title={`${cadet.Name}'s Details`}
+                />
+                <div style={{
+                  padding: '1rem',
+                  background: '#f8fafc',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  borderTop: '1px solid #e2e8f0'
+                }}>
+                  <OpenPDFButton href={pdfUrlToDisplay} target="_blank" rel="noopener noreferrer">
+                    View Full Dossier in New Tab
+                  </OpenPDFButton>
+                </div>
+              </div>
             ) : (
               // Empty state for cadets with no PDF
               <EmptyStateContainer>
@@ -90,6 +116,7 @@ const CadetDetailModal = ({ isOpen, onClose, cadet }) => {
                   This cadet's digital profile is being prepared. Check back soon for their detailed records and achievements!
                 </EmptyStateText>
                 <DetailsContainer>
+                  {cadet.rank && <DetailItem><DetailLabel>Rank:</DetailLabel><DetailValue>{getFullRank(cadet.rank)}</DetailValue></DetailItem>}
                   {cadet.secID && <DetailItem><DetailLabel>SEC ID:</DetailLabel><DetailValue>{cadet.secID}</DetailValue></DetailItem>}
                   {cadet.dept && <DetailItem><DetailLabel>Department:</DetailLabel><DetailValue>{cadet.dept}</DetailValue></DetailItem>}
                   {cadet.section && <DetailItem><DetailLabel>Section:</DetailLabel><DetailValue>{cadet.section}</DetailValue></DetailItem>}

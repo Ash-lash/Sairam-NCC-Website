@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { X, CheckCircle } from 'lucide-react';
 import { db } from '../../firebase'; // Still using Firestore for data
-import { supabase } from '../../supabaseClient'; // 1. IMPORT SUPABASE
+import { uploadFileToFirebaseStorage } from '../../utils/firebaseStorage';
 import { collection, addDoc } from 'firebase/firestore';
 
 // --- STYLES (No Change) ---
@@ -42,28 +42,6 @@ const AddWingReportModal = ({ isOpen, onClose, onComplete }) => {
     }
   }, [isOpen]);
 
-  // 3. SUPABASE UPLOAD FUNCTION
-  const uploadFileToSupabase = async (file, bucketPath) => {
-    if (!file) return '';
-    
-    const filePath = `${bucketPath}/${file.name}_${Date.now()}`;
-    setMessage(`Uploading ${file.name}...`);
-    
-    const { error } = await supabase.storage
-      .from('cadet-files') // Your public bucket name
-      .upload(filePath, file);
-
-    if (error) {
-      throw new Error(`Supabase Error: ${error.message}`);
-    }
-    
-    const { data } = supabase
-      .storage
-      .from('cadet-files')
-      .getPublicUrl(filePath);
-      
-    return data.publicUrl;
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -76,12 +54,18 @@ const AddWingReportModal = ({ isOpen, onClose, onComplete }) => {
     setMessage('Saving wing report...');
 
     try {
-      // 5. Upload PDF to Supabase
-      const pdfURL = await uploadFileToSupabase(pdfFile, `wing-reports/${selectedWing}`);
+      const uploadFileToFirebase = async (file, folderPath) => {
+        if (!file) return '';
+        setMessage(`Uploading ${file.name}...`);
+        return uploadFileToFirebaseStorage(file, folderPath);
+      };
+
+      // 5. Upload PDF to Firebase Storage (via shared utility)
+      const pdfURL = await uploadFileToFirebase(pdfFile, `wing-reports/${selectedWing}`);
 
       const targetCollection = `${selectedWing}Reports`; // e.g., "armyReports"
-      
-      // 6. Save the new Supabase URL to Firestore
+
+      // 6. Save the new Firebase URL to Firestore
       await addDoc(collection(db, targetCollection), {
         title: title,
         pdfURL: pdfURL,
@@ -108,7 +92,7 @@ const AddWingReportModal = ({ isOpen, onClose, onComplete }) => {
               <CloseButton onClick={onClose} disabled={isSubmitting}><X size={24} /></CloseButton>
             </ModalHeader>
             <Form onSubmit={handleSubmit}>
-              
+
               <FormGroup>
                 <Label>For Wing</Label>
                 <Select value={selectedWing} onChange={(e) => setSelectedWing(e.target.value)}>
@@ -122,21 +106,21 @@ const AddWingReportModal = ({ isOpen, onClose, onComplete }) => {
                 <Label>Report Title (e.g., 2023-2024)</Label>
                 <Input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
               </FormGroup>
-              
+
               {/* 7. Simple File Input */}
               <FormGroup>
                 <Label>Report PDF</Label>
-                <FileInput 
-                  type="file" 
-                  accept="application/pdf" 
-                  onChange={(e) => setPdfFile(e.target.files ? e.target.files[0] : null)} 
+                <FileInput
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setPdfFile(e.target.files ? e.target.files[0] : null)}
                   required // Make sure file input is required
                 />
                 {pdfFile && <UploadSuccess><CheckCircle size={16} /> Selected: {pdfFile.name}</UploadSuccess>}
               </FormGroup>
-              
+
               <Message>{message}</Message>
-              
+
               {/* 8. Disable save if no file selected */}
               <SaveButton type="submit" disabled={isSubmitting || !pdfFile}>
                 {isSubmitting ? 'Saving...' : 'Save Report'}

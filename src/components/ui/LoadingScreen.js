@@ -32,9 +32,9 @@ const TopRight = styled(CornerBracket)`top: 30px; right: 30px; border-left: none
 const BottomLeft = styled(CornerBracket)`bottom: 30px; left: 30px; border-right: none; border-top: none;`;
 const BottomRight = styled(CornerBracket)`bottom: 30px; right: 30px; border-left: none; border-top: none;`;
 
-const loadingSequence = [ "Booting Sairam NCC OS...", "Calibrating Cadet Matrix...", "Loading Wing Dynamics...", "Engaging Unity Protocol...", "SYSTEM READY", ];
+const loadingSequence = ["Booting Sairam NCC OS...", "Calibrating Cadet Matrix...", "Loading Wing Dynamics...", "Engaging Unity Protocol...", "SYSTEM READY",];
 
-const faceVariants = { exit: (custom) => { const transformMap = { front:  'rotateY(0deg) translateZ(600px)', back:   'rotateY(180deg) translateZ(600px)', right:  'rotateY(90deg) translateZ(600px)', left:   'rotateY(-90deg) translateZ(600px)', top:    'rotateX(90deg) translateZ(600px)', bottom: 'rotateX(-90deg) translateZ(600px)' }; return { transform: transformMap[custom], opacity: 0, scale: 2, transition: { duration: 0.8, ease: 'easeOut' } }; } };
+const faceVariants = { exit: (custom) => { const transformMap = { front: 'rotateY(0deg) translateZ(600px)', back: 'rotateY(180deg) translateZ(600px)', right: 'rotateY(90deg) translateZ(600px)', left: 'rotateY(-90deg) translateZ(600px)', top: 'rotateX(90deg) translateZ(600px)', bottom: 'rotateX(-90deg) translateZ(600px)' }; return { transform: transformMap[custom], opacity: 0, scale: 2, transition: { duration: 0.8, ease: 'easeOut' } }; } };
 
 const LoadingScreen = () => {
   const [textIndex, setTextIndex] = useState(0);

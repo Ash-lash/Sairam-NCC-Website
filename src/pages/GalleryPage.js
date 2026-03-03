@@ -1,205 +1,381 @@
-import React, { useState, useEffect, useCallback } from 'react';
+// src/pages/GalleryPage.js
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { collection, query, orderBy, getDocs, doc, getDoc, where } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, where, limit } from 'firebase/firestore';
 import { db } from '../firebase';
-import { ArrowLeft } from 'lucide-react';
-import Lightbox from "yet-another-react-lightbox";
-import "yet-another-react-lightbox/styles.css";
+import { ArrowLeft, ChevronDown, ChevronRight, X, Folder, Image as ImageIcon } from 'lucide-react';
+import SEO from '../components/common/SEO';
+import PhotoSlideshow from '../components/sections/PhotoSlideshow';
+import OptimizedImage from '../components/common/OptimizedImage';
 
-const PageContainer = styled.div` padding: 100px 2rem 4rem; max-width: 1400px; margin: 0 auto; `;
-const Header = styled(motion.div)` text-align: center; margin-bottom: 2rem; `;
-const Title = styled.h1` font-size: 3.5rem; font-weight: 800; color: #1A2B4C; `;
-const BackButton = styled.button` background: #FFFFFF; border: 1px solid #ddd; color: #1A2B4C; padding: 0.75rem 1.5rem; border-radius: 50px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-family: inherit; font-size: 1rem; margin-bottom: 2rem; `;
-const Grid = styled(motion.div)` display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; `;
-const Card = styled(motion.button)` height: 200px; border-radius: 25px; cursor: pointer; background: #FFFFFF; color: #1A2B4C; border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 700; transition: transform 0.2s, box-shadow 0.2s; &:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); } `;
-const PhotoCard = styled(motion.div)` aspect-ratio: 1 / 1; border-radius: 15px; overflow: hidden; cursor: pointer; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; } &:hover img { transform: scale(1.05); } `;
-const LoadingText = styled.p` text-align: center; font-size: 1.2rem; color: #555; padding: 3rem; `;
-const NoItemsText = styled(LoadingText)` color: #888; `;
+// --- STYLING ---
 
-// ✨ --- NEW, UNIQUELY NAMED COMPONENT TO FORCE STYLE UPDATE --- ✨
-const GalleryPhotoGrid = styled(motion.div)`
-  display: grid;
-  gap: 1rem;
+const PageContainer = styled.div`
+  padding-top: 100px;
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #0f172a;
+  overflow-x: hidden;
+`;
 
-  /* 5 columns on large screens */
-  grid-template-columns: repeat(5, 1fr);
-
-  /* 4 columns on smaller desktops */
-  @media (max-width: 1200px) {
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  /* 3 columns on tablets */
-  @media (max-width: 992px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
+const ContentWrapper = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem 5rem;
   
-  /* 2 columns on mobile */
-  @media (max-width: 576px) {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
+  @media (max-width: 768px) { padding: 0 1rem 3rem; }
+`;
+
+const Header = styled.div`
+  margin-bottom: 3rem;
+  text-align: center;
+`;
+
+const LargeTitle = styled(motion.h1)`
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  font-weight: 900;
+  margin: 0;
+  color: #0f172a;
+  letter-spacing: -0.04em;
+`;
+
+const Subtitle = styled(motion.p)`
+  color: #64748b;
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
+`;
+
+const AlbumGrid = styled(motion.div)`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 2rem;
+`;
+
+const AlbumCard = styled(motion.div)`
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   }
 `;
 
-const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const AlbumCoverWrapper = styled.div`
+  width: 100%;
+  height: 240px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+`;
+
+const AlbumInfo = styled.div`
+  padding: 1.5rem;
+  border-top: 1px solid #f1f5f9;
+`;
+
+const SdgBadge = styled.div`
+  display: inline-block;
+  background: #3b82f6;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+`;
+
+const AlbumTitleText = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+`;
+
+// --- PHOTOS VIEW ---
+
+const PhotoViewContainer = styled(motion.div)`
+  min-height: 100vh;
+`;
+
+const StickyHeader = styled.div`
+  position: sticky;
+  top: 70px;
+  z-index: 100;
+  background: rgba(248, 250, 252, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 1rem 0;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 2rem;
+`;
+
+const BackBtn = styled(motion.button)`
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 600;
+`;
+
+const SubfolderSection = styled.div`
+  margin-bottom: 3rem;
+`;
+
+const SubfolderHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e2e8f0;
+
+  h3 { margin: 0; font-size: 1.5rem; font-weight: 800; color: #1e293b; }
+  svg { color: #3b82f6; }
+`;
+
+const PhotoGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+`;
+
+const PhotoItem = styled(motion.div)`
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f1f5f9;
+  cursor: pointer;
+  position: relative;
+
+  img { width: 100%; height: 100%; object-fit: cover; }
+`;
+
+// Modal Viewer
+const ModalOverlay = styled(motion.div)`
+  position: fixed; inset: 0; background: #000; z-index: 100000;
+  display: flex; flex-direction: column;
+`;
+
+const ModalHeader = styled.div`
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 100001;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+`;
+
+const Counter = styled.div`
+  font-size: 1.1rem;
+  color: white;
+  font-weight: 600;
+  background: rgba(0,0,0,0.3);
+  padding: 5px 12px;
+  border-radius: 20px;
+`;
+
+const IconButton = styled(motion.button)`
+  background: rgba(255,255,255,0.1);
+  border: none;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  color: white;
+  display: flex; alignItems: center; justifyContent: center;
+  cursor: pointer;
+  backdrop-filter: blur(5px);
+`;
 
 const GalleryPage = () => {
-  const [view, setView] = useState('years');
-  const [galleryYears, setGalleryYears] = useState([]);
-  const [availableMonths, setAvailableMonths] = useState([]);
+  const [view, setView] = useState('albums');
+  const [albums, setAlbums] = useState([]);
+  const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [photos, setPhotos] = useState([]);
-  const [selectedYear, setSelectedYear] = useState(null);
-  const [selectedMonth, setSelectedMonth] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [lightboxIndex, setLightboxIndex] = useState(-1);
+  const [photosLoading, setPhotosLoading] = useState(false);
+  const [showSlideshow, setShowSlideshow] = useState(false);
+  const [startIndex, setStartIndex] = useState(0);
+  const [slideshowList, setSlideshowList] = useState([]);
 
-  const fetchYears = useCallback(async () => {
-    setLoading(true);
+  useEffect(() => { fetchAlbums(); }, []);
+
+  const fetchAlbums = async () => {
     try {
-      const configRef = doc(db, "config", "gallery");
-      const configSnap = await getDoc(configRef);
-      const years = configSnap.exists() ? configSnap.data().years.sort((a, b) => b - a) : [];
-      setGalleryYears(years);
-    } catch (error) {
-      console.error("Error fetching years:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      const q = query(collection(db, 'galleryAlbums'), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      setAlbums(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
 
-  const fetchMonthsForYear = useCallback(async () => {
-    if (!selectedYear) return;
-    setLoading(true);
-    try {
-      const q = query(collection(db, "galleryImages"), where("year", "==", selectedYear));
-      const querySnapshot = await getDocs(q);
-      const monthsWithPhotos = new Set();
-      querySnapshot.forEach(doc => {
-        monthsWithPhotos.add(doc.data().month);
-      });
-      setAvailableMonths(Array.from(monthsWithPhotos).sort((a, b) => a - b));
-      setView('months');
-    } catch (error) {
-      console.error("Error fetching months:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedYear]);
+  const handleAlbumSelect = async (album) => {
+    setSelectedAlbum(album);
+    setView('photos');
+    setPhotos([]);
+    setPhotosLoading(true);
+    window.scrollTo(0, 0);
 
-  const fetchPhotos = useCallback(async () => {
-    if (!selectedYear || !selectedMonth) return;
-    setLoading(true);
     try {
       const q = query(
-        collection(db, "galleryImages"),
-        where("year", "==", selectedYear),
-        where("month", "==", selectedMonth),
-        orderBy("timestamp", "desc")
+        collection(db, 'galleryImages'),
+        where('albumId', '==', album.id),
+        limit(500) // Increased limit to fetch all photos in folders
       );
-      const querySnapshot = await getDocs(q);
-      const fetchedPhotos = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setPhotos(fetchedPhotos);
-      setView('photos');
-    } catch (error) {
-      console.error("ERROR fetching photos:", error);
-      alert("Could not fetch photos. Check the console for errors.");
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedYear, selectedMonth]);
-
-  useEffect(() => {
-    if (view === 'years') fetchYears();
-  }, [view, fetchYears]);
-
-  const handleYearSelect = (year) => {
-    setSelectedYear(year);
-    setView('months');
-  };
-  
-  const handleMonthSelect = (month) => {
-    setSelectedMonth(month);
-    setView('photos');
+      const snapshot = await getDocs(q);
+      const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      fetched.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      setPhotos(fetched);
+    } catch (e) { console.error(e); }
+    finally { setPhotosLoading(false); }
   };
 
-  const openLightbox = (index) => setLightboxIndex(index);
+  const groupPhotos = (photos) => {
+    return photos.reduce((acc, photo) => {
+      const sub = photo.subfolderName || 'General';
+      if (!acc[sub]) acc[sub] = [];
+      acc[sub].push(photo);
+      return acc;
+    }, {});
+  };
+
+  const openPhoto = (allPhotos, photoId) => {
+    const index = allPhotos.findIndex(p => p.id === photoId);
+    setSlideshowList(allPhotos);
+    setStartIndex(index);
+    setShowSlideshow(true);
+  };
 
   useEffect(() => {
-    if (view === 'months' && selectedYear) fetchMonthsForYear();
-    if (view === 'photos' && selectedMonth) fetchPhotos();
-  }, [view, selectedYear, selectedMonth, fetchMonthsForYear, fetchPhotos]);
-
-
-  const renderContent = () => {
-    if (loading) return <LoadingText>Loading...</LoadingText>;
-
-    if (view === 'months') {
-      return (
-        <motion.div key="month-selection" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <Header><Title>{selectedYear} Gallery</Title></Header>
-          <BackButton onClick={() => { setView('years'); setSelectedYear(null); }}><ArrowLeft size={20}/> Back to Years</BackButton>
-          {availableMonths.length > 0 ? (
-            <Grid>
-              {availableMonths.map(monthNum => (
-                <Card key={monthNum} onClick={() => handleMonthSelect(monthNum)}>{monthNames[monthNum - 1]}</Card>
-              ))}
-            </Grid>
-          ) : (
-            <NoItemsText>No photos have been added for {selectedYear} yet.</NoItemsText>
-          )}
-        </motion.div>
-      );
+    const handleKeyDown = (e) => { if (e.key === 'Escape') setShowSlideshow(false); };
+    if (showSlideshow) {
+      window.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
     }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'auto';
+    };
+  }, [showSlideshow]);
 
-    if (view === 'photos') {
-      return (
-        <motion.div key="photo-grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <Header><Title>{monthNames[selectedMonth - 1]} {selectedYear}</Title></Header>
-          <BackButton onClick={() => { setView('months'); setSelectedMonth(null); }}><ArrowLeft size={20}/> Back to Months</BackButton>
-          {photos.length > 0 ? (
-            // ✨ Using the new, unique component here
-            <GalleryPhotoGrid>
-              {photos.map((photo, index) => (
-                <PhotoCard key={photo.id} onClick={() => openLightbox(index)} layoutId={photo.id}>
-                  <img src={photo.imageUrl} alt={photo.caption || `Gallery image`} />
-                </PhotoCard>
-              ))}
-            </GalleryPhotoGrid>
-          ) : (
-            <NoItemsText>No photos found for this month.</NoItemsText>
-          )}
-        </motion.div>
-      );
-    }
-    
+  if (loading && view === 'albums') {
     return (
-        <motion.div key="year-selection" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <Header><Title>Gallery</Title></Header>
-            {galleryYears.length > 0 ? (
-              <Grid>
-                {galleryYears.map(year => (
-                  <Card key={year} onClick={() => handleYearSelect(year)}>{year}</Card>
-                ))}
-              </Grid>
-            ) : (
-              <NoItemsText>The gallery is empty. Please add years and photos in the admin panel.</NoItemsText>
-            )}
-        </motion.div>
+      <PageContainer>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '60vh', gap: '1.5rem' }}>
+          <div className="skeleton-spinner"></div>
+          <p style={{ color: '#1A2B4C', opacity: 0.6, fontWeight: 600 }}>Scanning Photo Vault...</p>
+        </div>
+      </PageContainer>
     );
-  };
+  }
+
+  const grouped = groupPhotos(photos);
 
   return (
     <PageContainer>
+      <SEO title="Gallery | SAIRAM NCC" />
+
       <AnimatePresence mode="wait">
-        {renderContent()}
+        {view === 'albums' ? (
+          <ContentWrapper as={motion.div} key="albums" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <Header>
+              <LargeTitle>Gallery</LargeTitle>
+              <Subtitle>Capturing moments of transition, service, and excellence.</Subtitle>
+            </Header>
+
+            <AlbumGrid>
+              {albums.map((album) => (
+                <AlbumCard key={album.id} onClick={() => handleAlbumSelect(album)}>
+                  <AlbumCoverWrapper>
+                    <OptimizedImage src={album.coverImage} width={500} quality={70} alt={album.name} objectFit="cover" style={{ width: '100%', height: '100%' }} />
+                  </AlbumCoverWrapper>
+                  <AlbumInfo>
+                    <SdgBadge>{album.sdgGoal}</SdgBadge>
+                    <AlbumTitleText>{album.name}</AlbumTitleText>
+                    <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '5px' }}>{album.sdgName}</p>
+                  </AlbumInfo>
+                </AlbumCard>
+              ))}
+            </AlbumGrid>
+          </ContentWrapper>
+        ) : (
+          <PhotoViewContainer key="photos" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <StickyHeader>
+              <ContentWrapper style={{ padding: '0 2rem', display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: 0 }}>
+                <BackBtn onClick={() => setView('albums')} whileTap={{ scale: 0.95 }}>
+                  <ArrowLeft size={20} /> Albums
+                </BackBtn>
+                <div>
+                  <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>{selectedAlbum.name}</h1>
+                  <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>{selectedAlbum.sdgGoal} • {selectedAlbum.sdgName}</p>
+                </div>
+              </ContentWrapper>
+            </StickyHeader>
+
+            <ContentWrapper>
+              {photosLoading ? (
+                <div style={{ textAlign: 'center', padding: '10rem 0' }} className="skeleton-spinner"></div>
+              ) : (
+                <>
+                  {Object.entries(grouped).map(([folder, folderPhotos]) => (
+                    <SubfolderSection key={folder}>
+                      {folder !== 'General' && (
+                        <SubfolderHeader>
+                          <Folder size={24} />
+                          <h3>{folder}</h3>
+                        </SubfolderHeader>
+                      )}
+                      <PhotoGrid>
+                        {folderPhotos.map((photo) => (
+                          <PhotoItem key={photo.id} onClick={() => openPhoto(photos, photo.id)}>
+                            <OptimizedImage src={photo.imageUrl} width={450} quality={60} alt="gallery" objectFit="cover" style={{ width: '100%', height: '100%' }} />
+                          </PhotoItem>
+                        ))}
+                      </PhotoGrid>
+                    </SubfolderSection>
+                  ))}
+                  {photos.length === 0 && <p style={{ textAlign: 'center', color: '#64748b' }}>No photos found in this album.</p>}
+                </>
+              )}
+            </ContentWrapper>
+          </PhotoViewContainer>
+        )}
       </AnimatePresence>
-      <Lightbox
-        open={lightboxIndex > -1}
-        close={() => setLightboxIndex(-1)}
-        slides={photos.map(p => ({ src: p.imageUrl, title: p.caption }))}
-        index={lightboxIndex}
-      />
+
+      <AnimatePresence>
+        {showSlideshow && (
+          <ModalOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <ModalHeader>
+              <Counter>{startIndex + 1} / {slideshowList.length}</Counter>
+              <IconButton onClick={() => setShowSlideshow(false)}><X size={24} /></IconButton>
+            </ModalHeader>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <PhotoSlideshow
+                images={slideshowList}
+                currentIndex={startIndex}
+                onSlideChange={(idx) => setStartIndex(idx)}
+                isModal={true}
+              />
+            </div>
+          </ModalOverlay>
+        )}
+      </AnimatePresence>
     </PageContainer>
   );
 };

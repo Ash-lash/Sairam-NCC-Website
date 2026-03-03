@@ -10,12 +10,9 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 
 root.render(
   <React.StrictMode>
-    {/* This BrowserRouter is required for routing hooks to work */}
     <BrowserRouter>
       <AuthProvider>
-        <React.StrictMode>
-            <App />
-        </React.StrictMode>
+        <App />
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

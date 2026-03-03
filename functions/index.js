@@ -76,15 +76,84 @@ export const chatWithRAG = functions.https.onRequest(async (req, res) => {
   }
 });
 
-// 🔹 One-time function: Embed Firestore knowledge base
-export const embedKnowledge = functions.https.onRequest(async (req, res) => {
-  const snapshot = await db.collection("ncc_knowledge").get();
-  for (const doc of snapshot.docs) {
-    const data = doc.data();
-    if (!data.embedding) {
-      const embedding = await createEmbedding(data.text);
-      await doc.ref.update({ embedding });
+// 🔹 Cloud Function: Migration from Supabase to Firebase Storage
+export const migrateSupabaseToFirebase = functions.https.onRequest(async (req, res) => {
+  try {
+    const bucket = admin.storage().bucket();
+    const COLLECTIONS = [
+      { name: 'cadets', fields: ['photoURL', 'pdfURL'] },
+      { name: 'magicMembers', fields: ['photoURL'] },
+      { name: 'anos', fields: ['photoUrl', 'pdfUrl'] },
+      { name: 'alumni', fields: ['photoUrl'] },
+      { name: 'galleryImages', fields: ['imageUrl'] },
+      { name: 'slideshowImages', fields: ['imageUrl'] },
+      { name: 'armySlideshowImages', fields: ['imageUrl'] },
+      { name: 'navySlideshowImages', fields: ['imageUrl'] },
+      { name: 'airSlideshowImages', fields: ['imageUrl'] }
+    ];
+
+    let migratedCount = 0;
+
+    for (const col of COLLECTIONS) {
+      const snapshot = await db.collection(col.name).get();
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        const updates = {};
+        let changed = false;
+
+        for (const field of col.fields) {
+          const url = data[field];
+          if (url && url.includes('supabase.co')) {
+            // Migration logic
+            const response = await fetch(url);
+            if (!response.ok) continue;
+
+            const buffer = Buffer.from(await response.arrayBuffer());
+            const fileName = `migration/${col.name}/${doc.id}_${Date.now()}_${field}.jpg`;
+            const file = bucket.file(fileName);
+
+            await file.save(buffer, {
+              metadata: { contentType: response.headers.get('content-type') || 'image/jpeg' },
+            });
+
+            await file.makePublic();
+            updates[field] = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+            changed = true;
+          }
+        }
+
+        if (changed) {
+          await doc.ref.update(updates);
+          migratedCount++;
+        }
+      }
     }
+    res.json({ success: true, migratedCount });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
-  res.send("Knowledge base embedded successfully!");
 });
+
+// 🔹 Cloud Function: Reset Alumni Passwords
+export const resetAlumniPasswords = functions.https.onRequest(async (req, res) => {
+  try {
+    const adminEmails = ['alumini@sairamtao.edu.in', 'alumini@sairamtap.edu.in'];
+    const newPassword = 'Sairam@123';
+    let updated = [];
+
+    for (const email of adminEmails) {
+      try {
+        const user = await admin.auth().getUserByEmail(email);
+        await admin.auth().updateUser(user.uid, { password: newPassword });
+        updated.push(email);
+      } catch (e) {
+        console.warn(`User ${email} not found`);
+      }
+    }
+    res.json({ success: true, updated });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+

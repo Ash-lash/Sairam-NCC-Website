@@ -2,16 +2,39 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
-import { ArrowLeft, Users, Target, Trophy, Calendar, ChevronLeft, Edit, Plus, Trash2, ChevronRight } from 'lucide-react';
-import { armyRankOrder, navyRankOrder, airForceRankOrder } from '../rankStructure';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayUnion, arrayRemove, writeBatch, orderBy, limit } from 'firebase/firestore';
+import styled, { keyframes } from 'styled-components';
+import { ArrowLeft, Users, Target, Trophy, Calendar, ChevronLeft, Edit, Plus, Trash2, ChevronRight, GripVertical, Download } from 'lucide-react';
+import { armyRankOrder, navyRankOrder, airForceRankOrder, getFullRank } from '../rankStructure';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayRemove, writeBatch, orderBy, limit } from 'firebase/firestore';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
+import { uploadFileToFirebaseStorage } from '../utils/firebaseStorage';
 import CadetDetailModal from '../components/ui/CadetDetailModal';
 import AdminCadetEditor from '../components/admin/AdminCadetEditor';
 import AddCadetModal from '../components/admin/AddCadetModal';
 import AddBatchModal from '../components/admin/AddBatchModal';
+import OptimizedImage from '../components/common/OptimizedImage';
+import SEO from '../components/common/SEO';
+import { getOptimizedUrl } from '../utils/imageOptimizer';
+import { getWingCandidates, toCanonicalWing } from '../utils/wingUtils';
+import * as XLSX from 'xlsx';
+
 
 // --- STYLES (Unchanged) ---
 const PageContainer = styled(motion.div)`
@@ -40,7 +63,7 @@ const HeroSection = styled.div`
   height: 88vh;
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* Move text to the top */
   justify-content: center;
   margin-bottom: 4rem;
   overflow: hidden;
@@ -52,29 +75,59 @@ const HeroOverlay = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to top, rgba(10, 21, 41, 0.7) 0%, transparent 60%);
+  background: linear-gradient(
+    to bottom, 
+    rgba(10, 21, 41, 0.8) 0%, 
+    transparent 30%, 
+    transparent 70%, 
+    rgba(10, 21, 41, 0.8) 100%
+  );
   z-index: 2;
   pointer-events: none;
 `;
 const HeroContent = styled(motion.div)`
-  text-align: center;
-  padding: 2rem;
-  position: relative;
-  z-index: 3;
+  position: absolute;
+  top: 100px;
+  left: 2rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  z-index: 20;
+  max-width: 450px;
   pointer-events: none;
+  border-left: 8px solid ${props => props.$wingColor || '#1A2B4C'};
+  transform-origin: left;
+
+  @media (max-width: 768px) {
+    top: 90px;
+    left: 1rem;
+    right: 1rem;
+    max-width: unset;
+    text-align: center;
+    border-left: none;
+    border-top: 6px solid ${props => props.$wingColor || '#1A2B4C'};
+    padding: 1.25rem;
+    transform-origin: center;
+  }
 `;
 const WingTitle = styled(motion.h1)`
-  font-size: 4rem;
+  font-size: clamp(1.8rem, 4vw, 2.5rem);
   font-weight: 900;
-  margin-bottom: 0.5rem;
-  color: #FFFFFF;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  margin: 0;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  text-transform: uppercase;
 `;
 const WingMotto = styled(motion.p)`
-  font-size: 1.5rem;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  color: #475569;
   font-style: italic;
-  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
+  margin-top: 0.4rem;
+  font-weight: 500;
+  opacity: 0.9;
 `;
 const CarouselWrapper = styled.div`
   position: absolute;
@@ -154,6 +207,46 @@ const ContentSection = styled.section`
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem 4rem;
+`;
+
+const UnitSwitcher = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin: 2rem auto 3rem; /* CHANGED FROM negative margin to positive */
+  position: relative;
+  z-index: 100;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    margin-top: 1rem;
+    gap: 1rem;
+  }
+`;
+
+const UnitButton = styled(motion.button)`
+  background: white;
+  border: 2px solid ${props => props.$active ? props.$color : '#e2e8f0'};
+  padding: 1rem 2rem;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+  font-weight: 700;
+  color: ${props => props.$active ? props.$color : '#64748b'};
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    border-color: ${props => props.$color};
+  }
+
+  svg {
+    color: ${props => props.$active ? props.$color : '#94a3b8'};
+  }
 `;
 const SectionGrid = styled.div`
   display: grid;
@@ -289,23 +382,37 @@ const CadetCard = styled(motion.div)`
   width: 200px;
   background: white;
   border-radius: 15px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   position: relative;
+  user-select: none;
 `;
 const CadetPhotoContainer = styled.div`
-  height: 200px;
-  background-color: #e9ecef;
+  height: ${props => props.$rounded ? '150px' : '250px'};
+  width: ${props => props.$rounded ? '150px' : '100%'};
+  margin: ${props => props.$rounded ? '1.5rem auto 1rem' : '0'};
+  border-radius: ${props => props.$rounded ? '50%' : '0'};
+  background-color: #f8f9fa;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #adb5bd;
   cursor: pointer;
+  overflow: hidden;
+  ${props => props.$rounded && `
+    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    border: 3px solid white;
+  `}
 `;
-const CadetPhoto = styled.img`
+const CadetPhoto = styled.img.attrs({
+  loading: "lazy",
+  decoding: "async",
+  fetchPriority: "low"
+})`
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: ${props => props.$rounded ? 'cover' : 'contain'};
+  border-radius: ${props => props.$rounded ? '50%' : '0'};
 `;
 const CadetName = styled.p`
   font-weight: 700;
@@ -345,9 +452,28 @@ const AdminEditButton = styled.button`
   z-index: 10;
   transition: background 0.2s;
   &:hover {
-    background: #FFBF00;
-    color: #1A2B4C;
+    background: #1A2B4C;
   }
+`;
+
+const DragHandle = styled.div`
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1A2B4C;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  backdrop-filter: blur(5px);
+  z-index: 10;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  &:active { cursor: grabbing; }
 `;
 // ✨ Updated CadetInfo style
 const CadetInfo = styled.p`
@@ -360,11 +486,271 @@ const CadetInfo = styled.p`
   overflow: hidden; /* Hide overflow */
   text-overflow: ellipsis; /* Add ellipsis (...) for overflow */
 `;
+
+const TabsContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 3rem;
+  border-bottom: 2px solid rgba(0,0,0,0.05);
+  padding-bottom: 1rem;
+`;
+
+const TabButton = styled.button`
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: ${props => props.$active ? '#1A2B4C' : '#64748b'};
+  background: ${props => props.$active ? 'rgba(26, 43, 76, 0.05)' : 'transparent'};
+  border: none;
+  border-bottom: 3px solid ${props => props.$active ? '#1A2B4C' : 'transparent'};
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 8px 8px 0 0;
+
+  &:hover {
+    color: #1A2B4C;
+    background: rgba(26, 43, 76, 0.02);
+  }
+
+  @media (max-width: 600px) {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+`;
+
+const TabContent = styled(motion.div)`
+  width: 100%;
+`;
+
+const PDFViewerContainer = styled.div`
+  width: 100%;
+  height: 800px;
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`;
+
+const EmptyPDFState = styled.div`
+  text-align: center;
+  padding: 4rem;
+  color: #64748b;
+  
+  h3 { margin-bottom: 1rem; color: #1A2B4C; }
+`;
+
+const AdminUploadTools = styled.div`
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const NameListButton = styled(motion.button)`
+  background: #2D4A7C;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(45, 74, 124, 0.2);
+  
+  &:hover { background: #1A2B4C; }
+`;
+
+const MaterialGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+`;
+
+const MaterialCard = styled(motion.div)`
+  background: white;
+  padding: 1.25rem;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #1A2B4C;
+    transform: translateY(-3px);
+    box-shadow: 0 12px 20px rgba(0,0,0,0.08);
+  }
+`;
+
+const MaterialIcon = styled.div`
+  width: 48px;
+  height: 48px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1A2B4C;
+  flex-shrink: 0;
+`;
+
+const MaterialMeta = styled.div`
+  flex: 1;
+  min-width: 0;
+  h4 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  p {
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 0.2rem;
+  }
+`;
+
+const DeleteMaterialBtn = styled.button`
+  background: #fee2e2;
+  color: #ef4444;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #ef4444;
+    color: white;
+  }
+`;
 // ---
 
+const Skeleton = styled.div`
+  width: 100%;
+  height: 100%;
+  background: #f1f5f9;
+  position: relative;
+  overflow: hidden;
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: ${keyframes`0%{transform:translateX(-100%)}100%{transform:translateX(100%)}`} 1.5s infinite linear;
+  }
+`;
+
+const SortableCadetCard = ({ cadet, isAdmin, onCadetClick, onAdminEdit, useRoundedFrames }) => {
+  // Simple: just track if the image failed — no hiding, no timers
+  const [imgFailed, setImgFailed] = useState(false);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: cadet.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 999 : 1,
+    opacity: isDragging ? 0.6 : 1,
+  };
+
+  const handleImageError = () => setImgFailed(true);
+
+
+
+  return (
+    <CadetCard
+      ref={setNodeRef}
+      style={style}
+      whileHover={isDragging ? {} : { y: -5 }}
+    >
+      {isAdmin && (
+        <>
+          <DragHandle {...attributes} {...listeners}>
+            <GripVertical size={16} />
+          </DragHandle>
+          <AdminEditButton onClick={() => onAdminEdit(cadet)}>
+            <Edit size={16} />
+          </AdminEditButton>
+        </>
+      )}
+      <CadetPhotoContainer
+        $rounded={useRoundedFrames}
+        onClick={() => onCadetClick(cadet)}
+      >
+        {cadet.photoURL && !imgFailed ? (
+          <OptimizedImage
+            src={cadet.photoURL}
+            alt={cadet.Name}
+            width={300}
+            quality={85}
+            objectFit={useRoundedFrames ? 'cover' : 'contain'}
+            objectPosition="top center"
+            style={{
+              width: '100%',
+              height: '100%',
+              borderRadius: useRoundedFrames ? '50%' : '0'
+            }}
+            onError={handleImageError}
+          />
+        ) : (
+          <Users size={useRoundedFrames ? 64 : 48} />
+        )}
+      </CadetPhotoContainer>
+      <div onClick={() => onCadetClick(cadet)} style={{ paddingBottom: '0.75rem', cursor: 'pointer' }}>
+        <CadetName>{cadet.Name}</CadetName>
+        <CadetInfo>{cadet.secID}</CadetInfo>
+        {cadet.regimentalNo && <CadetInfo>{cadet.regimentalNo}</CadetInfo>}
+        <CadetInfo>{`${cadet.dept}, Sec ${cadet.section} `}</CadetInfo>
+      </div>
+    </CadetCard>
+  );
+};
+
 // BatchDetails Component
-const BatchDetails = ({ wing, cadetsByRank, loading, onCadetClick, onAdminEdit }) => {
-  const { user } = useAuth();
+const BatchDetails = ({ wing, cadetsByRank, loading, onCadetClick, onAdminEdit, onDragEnd, useRoundedFrames }) => {
+  const { isAdmin } = useAuth();
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const getRankOrder = () => {
     switch (wing) {
       case 'army': return armyRankOrder;
@@ -378,52 +764,88 @@ const BatchDetails = ({ wing, cadetsByRank, loading, onCadetClick, onAdminEdit }
   if (loading) return <LoadingText>Loading batch details...</LoadingText>;
   if (Object.keys(cadetsByRank).length === 0 && !loading) return <NoCadetsMessage>No cadets found for this batch.</NoCadetsMessage>;
 
+  // Build the final list: known rank order first, then any leftover ranks not in the order
+  const knownRanksToShow = rankOrder.filter(r => (cadetsByRank[r] || []).length > 0);
+  const unknownRanks = Object.keys(cadetsByRank).filter(r => !rankOrder.includes(r) && cadetsByRank[r].length > 0);
+  const allRanksToRender = [...knownRanksToShow, ...unknownRanks];
+
   return (
-    <div>
-      {rankOrder.map(rank => (
-        (cadetsByRank[rank] && cadetsByRank[rank].length > 0) && (
+    <>
+      {allRanksToRender.map(rank => {
+        const cadets = cadetsByRank[rank] || [];
+        if (cadets.length === 0) return null;
+
+        return (
           <RankSection key={rank}>
-            <RankTitle>{rank}</RankTitle>
-            <CadetGrid>
-              {cadetsByRank[rank].map((cadet) => (
-                <CadetCard key={cadet.id} whileHover={{ y: -5 }}>
-                  {user && <AdminEditButton onClick={() => onAdminEdit(cadet)}><Edit size={16} /></AdminEditButton>}
-                  <CadetPhotoContainer onClick={() => onCadetClick(cadet)}>
-                    {cadet.photoURL ? <CadetPhoto src={cadet.photoURL} alt={cadet.Name} /> : <Users size={48} />}
-                  </CadetPhotoContainer>
-                  {/* Wrap info in a clickable div with padding */}
-                  <div onClick={() => onCadetClick(cadet)} style={{ paddingBottom: '0.75rem', cursor: 'pointer' }}>
-                    <CadetName>{cadet.Name}</CadetName>
-                    <CadetInfo>{cadet.secID}</CadetInfo>
-
-                    {/* ✨ ADD REGIMENTAL NUMBER HERE */}
-                    {cadet.regimentalNo && <CadetInfo>{cadet.regimentalNo}</CadetInfo>}
-
-                    <CadetInfo>{`${cadet.dept}, Sec ${cadet.section}`}</CadetInfo>
-                  </div>
-                </CadetCard>
-              ))}
-            </CadetGrid>
+            <RankTitle>{getFullRank(rank)}</RankTitle>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(event) => onDragEnd(event, rank)}
+            >
+              <SortableContext
+                items={cadets.map(c => c.id)}
+                strategy={rectSortingStrategy}
+              >
+                <CadetGrid>
+                  {cadets.map((cadet) => (
+                    <SortableCadetCard
+                      key={cadet.id}
+                      cadet={cadet}
+                      isAdmin={isAdmin}
+                      onCadetClick={onCadetClick}
+                      onAdminEdit={onAdminEdit}
+                      useRoundedFrames={useRoundedFrames}
+                    />
+                  ))}
+                </CadetGrid>
+              </SortableContext>
+            </DndContext>
           </RankSection>
-        )
-      ))}
-    </div>
+        );
+      })}
+    </>
   );
 };
 
 // --- wingData (Unchanged) ---
 const wingData = {
   army: {
-    title: 'Army', motto: 'Service Before Self',
-    info: [ { icon: Users, title: 'Leadership Development', description: 'Comprehensive training in military leadership, decision-making, and team management skills.' }, { icon: Target, title: 'Combat Training', description: 'Weapons handling, tactical training, and field exercises to build combat readiness.' }, { icon: Trophy, title: 'Physical Fitness', description: 'Rigorous physical training programs to maintain peak physical condition and endurance.' } ],
+    title: 'Army (BTY)', motto: 'Service Before Self',
+    color: '#D22B2B',
+    info: [
+      { icon: Users, title: 'BTY Operations', description: 'Primary focus on field artillery and battery-level military leadership.' },
+      { icon: Target, title: 'Combat Excellence', description: 'Advanced weapons training and tactical maneuvers for the Army Battery.' },
+      { icon: Trophy, title: 'Legacy of Valor', description: 'Maintaining the rich tradition and discipline of the 1 (TN) BTY NCC.' }
+    ],
+  },
+  'army-bn': {
+    title: 'Army (BN)', motto: 'Unity and Discipline',
+    color: '#8b0000',
+    info: [
+      { icon: Users, title: 'Battalion Leadership', description: 'Developing organizational leadership and large-scale coordination skills.' },
+      { icon: Target, title: 'Drill & Ceremony', description: 'Mastering the art of precise drill and ceremonial traditions unique to the Battalion.' },
+      { icon: Trophy, title: 'Collective Strength', description: 'Fostering esprit de corps through large-scale team building and coordination.' }
+    ],
+  },
+  'army-med': {
+    title: 'Army (MED)', motto: 'Service with Care',
+    color: '#006400',
+    info: [
+      { icon: Trophy, title: 'Combat Medic Training', description: 'Life-saving first aid, casualty evacuation, and medical support in field conditions.' },
+      { icon: Users, title: 'Healthcare Service', description: 'Community medical service and health awareness training for dedicated medical cadets.' },
+      { icon: Target, title: 'Technical Proficiency', description: 'Advanced knowledge of anatomy, physiology, and emergency medical procedures.' }
+    ],
   },
   navy: {
     title: 'Navy', motto: 'Victory on Sea',
-    info: [ { icon: Users, title: 'Naval Operations', description: 'Training in ship handling, navigation, and maritime operations for future naval officers.' }, { icon: Trophy, title: 'Seamanship', description: 'Comprehensive knowledge of naval traditions, marine engineering, and oceanography.' }, { icon: Calendar, title: 'Sea Training', description: 'Practical experience aboard naval vessels and coastal training facilities.' } ],
+    color: '#000080',
+    info: [{ icon: Users, title: 'Naval Operations', description: 'Training in ship handling, navigation, and maritime operations for future naval officers.' }, { icon: Trophy, title: 'Seamanship', description: 'Comprehensive knowledge of naval traditions, marine engineering, and oceanography.' }, { icon: Calendar, title: 'Sea Training', description: 'Practical experience aboard naval vessels and coastal training facilities.' }],
   },
   airforce: {
     title: 'Air', motto: 'Touch the Sky With Glory',
-    info: [ { icon: Users, title: 'Aviation Training', description: 'Introduction to aircraft systems, flight principles, and aerospace technology.' }, { icon: Target, title: 'Air Power Studies', description: 'Understanding of air warfare tactics, strategic operations, and military aviation.' }, { icon: Trophy, title: 'Technical Skills', description: 'Advanced training in electronics, radar systems, and aircraft maintenance.' } ],
+    color: '#87CEEB',
+    info: [{ icon: Users, title: 'Aviation Training', description: 'Introduction to aircraft systems, flight principles, and aerospace technology.' }, { icon: Target, title: 'Air Power Studies', description: 'Understanding of air warfare tactics, strategic operations, and military aviation.' }, { icon: Trophy, title: 'Technical Skills', description: 'Advanced training in electronics, radar systems, and aircraft maintenance.' }],
   }
 };
 
@@ -432,6 +854,7 @@ const WingPage = () => {
   const { wingType } = useParams();
   const navigate = useNavigate();
   const [slides, setSlides] = useState([]);
+  const [slidesLoaded, setSlidesLoaded] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [batches, setBatches] = useState([]);
@@ -443,10 +866,13 @@ const WingPage = () => {
   const [cadetsByRank, setCadetsByRank] = useState({});
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0); // Used to trigger re-fetches
-  const { user } = useAuth(); // Get auth state
+  const { isAdmin } = useAuth(); // Get auth state
 
-  // Determine the correct string for Firestore queries ('air' vs 'airforce')
-  const wingCategoryForQuery = wingType === 'airforce' ? 'air' : wingType;
+  // Determine the correct string for Firestore queries
+  const wingCategoryForQuery = wingType === 'airforce' ? 'air' :
+    wingType === 'army-bn' ? 'armyBN' :
+      wingType === 'army-med' ? 'armyMED' :
+        wingType;
 
   // Fetch slideshow images based on wing
   useEffect(() => {
@@ -459,26 +885,45 @@ const WingPage = () => {
           limit(20) // Limit to 20 slides for performance
         );
         const querySnapshot = await getDocs(q);
-        const fetchedSlides = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        const fetchedSlides = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            // Pre-optimize background images
+            optimizedBg: getOptimizedUrl(data.imageUrl, 1920, 80)
+          };
+        });
         setSlides(fetchedSlides);
       } catch (error) {
         console.error("Error fetching slideshow images:", error);
+      } finally {
+        setSlidesLoaded(true); // Mark as loaded whether empty or not
       }
     };
     fetchSlides();
   }, [wingCategoryForQuery]); // Re-fetch if wing changes
+
+
 
   // Slideshow next/prev logic
   const nextSlide = useCallback(() => {
     if (slides.length > 0) setCurrentSlide(prev => (prev + 1) % slides.length);
   }, [slides.length]);
 
-  const prevSlide = () => {
+  const prevSlide = useCallback(() => {
     if (slides.length > 0) setCurrentSlide(prev => (prev - 1 + slides.length) % slides.length);
-  };
+  }, [slides.length]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "ArrowRight") nextSlide();
+      else if (e.key === "ArrowLeft") prevSlide();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [nextSlide, prevSlide]);
 
   // Auto-advance slideshow
   useEffect(() => {
@@ -500,46 +945,91 @@ const WingPage = () => {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const batchData = docSnap.data();
-        // Sort batches numerically based on the leading number (e.g., "1. 2022-2025")
-        const sortedBatches = (batchData[wingType] || []).sort((a, b) => {
-          const numA = parseInt(a.split('.')[0], 10);
-          const numB = parseInt(b.split('.')[0], 10);
-          return numA - numB;
+        // Try multiple possible key variants since Firestore key may differ from URL param
+        // e.g. wingType='army-med' but key might be 'armyMED', 'Army MED', 'armymed', etc.
+        const keyVariants = [
+          wingType,                                              // 'army-med'
+          wingType.replace(/-/g, ''),                           // 'armymed'
+          wingCategoryForQuery,                                  // 'armyMED'
+          wingType.replace(/-/g, ' '),                          // 'army med'
+          wingType.toUpperCase().replace(/-/g, '_'),            // 'ARMY_MED'
+          toCanonicalWing(wingType),                            // 'Army MED'
+        ];
+        console.log('[Batches] Available keys in Firestore:', Object.keys(batchData));
+        console.log('[Batches] Trying key variants:', keyVariants);
+
+        let rawBatches = [];
+        for (const key of keyVariants) {
+          if (batchData[key] && batchData[key].length > 0) {
+            rawBatches = batchData[key];
+            console.log('[Batches] Found batches with key:', key, rawBatches);
+            break;
+          }
+        }
+
+        const sortedBatches = rawBatches.sort((a, b) => {
+          const yearA = parseInt(a.match(/\d{4}/)?.[0] || 0, 10);
+          const yearB = parseInt(b.match(/\d{4}/)?.[0] || 0, 10);
+          return yearB - yearA;
         });
         setBatches(sortedBatches);
       } else {
-        setBatches([]); // No batches found
+        setBatches([]);
       }
     } catch (error) {
       console.error("Error fetching batches:", error);
     }
-  }, [wingType]); // Re-fetch if wing changes
+  }, [wingType, wingCategoryForQuery]); // Re-fetch if wing changes
 
   // Fetch cadets for the selected batch and wing
   const fetchCadets = useCallback(async () => {
+    if (!wingType || !selectedBatch) return;
+
     // Extract only the batch year range (e.g., "2022-2025") for the query
     const cleanBatchName = selectedBatch.includes('.') ? selectedBatch.substring(selectedBatch.indexOf(' ') + 1) : selectedBatch;
-    if (!wingType || !cleanBatchName) return;
+    if (!cleanBatchName) return;
 
     setLoading(true);
-    // Format wing name consistently for Firestore query ('Air' vs 'Airforce')
-    let formattedWing = wingType.charAt(0).toUpperCase() + wingType.slice(1);
-    if (formattedWing === 'Airforce') {
-      formattedWing = 'Air'; // Use 'Air' as stored in Firestore
-    }
-
-    const q = query(collection(db, "cadets"), where("Wing", "==", formattedWing), where("Batch", "==", cleanBatchName));
+    const wingCandidates = getWingCandidates(wingType);
+    console.log('[Cadets] Querying Wing candidates:', wingCandidates, 'Batch:', cleanBatchName);
 
     try {
-      const querySnapshot = await getDocs(q);
-      const fetchedCadets = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // Group cadets by rank
+      const querySnapshots = await Promise.all(
+        wingCandidates.map((wingValue) =>
+          getDocs(
+            query(
+              collection(db, "cadets"),
+              where("Wing", "==", wingValue),
+              where("Batch", "==", cleanBatchName)
+            )
+          )
+        )
+      );
+
+      const cadetMap = new Map();
+      querySnapshots.forEach((snapshot, i) => {
+        console.log(`[Cadets] Wing="${wingCandidates[i]}" returned ${snapshot.docs.length} docs`);
+        snapshot.docs.forEach((docSnap) => {
+          cadetMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+        });
+      });
+      const fetchedCadets = Array.from(cadetMap.values());
+      console.log('[Cadets] Total fetched:', fetchedCadets.length);
+
+      // Group and sort
       const grouped = fetchedCadets.reduce((acc, cadet) => {
-        const rank = cadet.rank || "Unranked"; // Handle cases with no rank
+        const rank = cadet.rank || "Unranked";
         if (!acc[rank]) acc[rank] = [];
         acc[rank].push(cadet);
         return acc;
       }, {});
+
+      // Sort inside each rank
+      Object.keys(grouped).forEach(rank => {
+        grouped[rank].sort((a, b) => (a.order || 0) - (b.order || 0));
+      });
+
+      console.log('[Cadets] Grouped by rank:', Object.keys(grouped), grouped);
       setCadetsByRank(grouped);
     } catch (error) {
       console.error("Error fetching cadets:", error);
@@ -572,20 +1062,31 @@ const WingPage = () => {
   const handleDeleteBatch = async (batchToDelete) => {
     // Extract clean batch name for cadet query
     const cleanBatchNameToDelete = batchToDelete.includes('.') ? batchToDelete.substring(batchToDelete.indexOf(' ') + 1) : batchToDelete;
-    if (!window.confirm(`Are you sure you want to delete the "${cleanBatchNameToDelete}" batch and ALL its cadets? This cannot be undone.`)) return;
+    if (!window.confirm(`Are you sure you want to delete the "${cleanBatchNameToDelete}" batch and ALL its cadets ? This cannot be undone.`)) return;
 
     try {
       setLoading(true);
-      let formattedWing = wingType.charAt(0).toUpperCase() + wingType.slice(1);
-      if (formattedWing === 'Airforce') formattedWing = 'Air';
+      const wingCandidates = getWingCandidates(wingType);
 
-      // Query for cadets in the batch to delete
-      const q = query(collection(db, "cadets"), where("Wing", "==", formattedWing), where("Batch", "==", cleanBatchNameToDelete));
-      const querySnapshot = await getDocs(q);
+      const querySnapshots = await Promise.all(
+        wingCandidates.map((wingValue) =>
+          getDocs(
+            query(
+              collection(db, "cadets"),
+              where("Wing", "==", wingValue),
+              where("Batch", "==", cleanBatchNameToDelete)
+            )
+          )
+        )
+      );
 
       // Delete all cadets in the batch using Firestore Batch
       const firestoreBatch = writeBatch(db);
-      querySnapshot.forEach(doc => firestoreBatch.delete(doc.ref));
+      const refsToDelete = new Map();
+      querySnapshots.forEach((snapshot) => {
+        snapshot.forEach((docSnap) => refsToDelete.set(docSnap.id, docSnap.ref));
+      });
+      refsToDelete.forEach((docRef) => firestoreBatch.delete(docRef));
       await firestoreBatch.commit();
 
       // Remove the batch name from the config document
@@ -614,35 +1115,278 @@ const WingPage = () => {
     setIsEditModalOpen(true);
   };
 
+  const handleDragEnd = async (event, rank) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const rankCadets = Array.from(cadetsByRank[rank]);
+    const oldIndex = rankCadets.findIndex(c => c.id === active.id);
+    const newIndex = rankCadets.findIndex(c => c.id === over.id);
+
+    const newOrder = arrayMove(rankCadets, oldIndex, newIndex);
+
+    // Update locally for instant state
+    const updatedGrouped = { ...cadetsByRank, [rank]: newOrder };
+    setCadetsByRank(updatedGrouped);
+
+    // Persist to Firestore
+    try {
+      const batchOp = writeBatch(db);
+      newOrder.forEach((cadet, index) => {
+        const ref = doc(db, 'cadets', cadet.id);
+        batchOp.update(ref, { order: index });
+      });
+      await batchOp.commit();
+      console.log("Reordering saved to Firestore.");
+    } catch (error) {
+      console.error("Error saving reorder:", error);
+      fetchCadets(); // Revert on error
+    }
+  };
+
+  // Generate Name List Excel
+  const generateNameList = () => {
+    console.log("Generating Name List Excel...");
+    if (!selectedBatch) {
+      console.warn("No batch selected");
+      return;
+    }
+
+    try {
+      const cleanBatchName = selectedBatch.includes('.') ? selectedBatch.substring(selectedBatch.indexOf(' ') + 1) : selectedBatch;
+
+      const getRankOrder = () => {
+        switch (wingType) {
+          case 'army': return armyRankOrder;
+          case 'navy': return navyRankOrder;
+          case 'airforce': return airForceRankOrder;
+          default: return [];
+        }
+      };
+
+      const rankOrder = getRankOrder();
+      const excelData = [];
+
+      rankOrder.forEach(rank => {
+        if (cadetsByRank[rank]) {
+          cadetsByRank[rank].forEach(cadet => {
+            excelData.push({
+              'Batch': cleanBatchName,
+              'Rank': rank,
+              'Name': cadet.Name || 'N/A',
+              'Regimental Number': cadet.regimentalNo || 'N/A',
+              'Department': cadet.dept || 'N/A',
+              'Student ID': cadet.secID || 'N/A',
+              'Dossier': cadet.pdfURL || 'N/A'
+            });
+          });
+        }
+      });
+
+      if (excelData.length === 0) {
+        alert("No cadet data found to generate Excel.");
+        return;
+      }
+
+      // Create Worksheet
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+      // Create Workbook
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Cadet List");
+
+      // Set column widths for better readability
+      const wscols = [
+        { wch: 15 }, // Batch
+        { wch: 15 }, // Rank
+        { wch: 30 }, // Name
+        { wch: 25 }, // Regimental No
+        { wch: 20 }, // Dept
+        { wch: 15 }, // Student ID
+        { wch: 50 }  // Dossier
+      ];
+      worksheet['!cols'] = wscols;
+
+      // Download File
+      const fileName = `${wingType.charAt(0).toUpperCase() + wingType.slice(1)}_${cleanBatchName.replace(' ', '_')}_NameList.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+
+      console.log("Excel generated successfully");
+    } catch (err) {
+      console.error("Error generating Excel:", err);
+      alert("Failed to generate Excel file.");
+    }
+  };
+
+  // Generate Whole Wing Name List Excel
+  const generateWholeWingNameList = async () => {
+    console.log("Generating Whole Wing Name List Excel...");
+
+    try {
+      const wingCandidates = getWingCandidates(wingType);
+      const querySnapshots = await Promise.all(
+        wingCandidates.map((wingValue) =>
+          getDocs(query(collection(db, "cadets"), where("Wing", "==", wingValue)))
+        )
+      );
+
+      const cadetMap = new Map();
+      querySnapshots.forEach((snapshot) => {
+        snapshot.docs.forEach((docSnap) => {
+          cadetMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+        });
+      });
+
+      const allCadets = Array.from(cadetMap.values());
+
+      const getRankOrder = () => {
+        switch (wingType) {
+          case 'army': return armyRankOrder;
+          case 'navy': return navyRankOrder;
+          case 'airforce': return airForceRankOrder;
+          default: return [];
+        }
+      };
+
+      const rankOrder = getRankOrder();
+
+      // Sort cadets by batch (newer first) and then by rank order
+      allCadets.sort((a, b) => {
+        if (a.Batch !== b.Batch) {
+          return b.Batch.localeCompare(a.Batch);
+        }
+        const rankA = rankOrder.indexOf(a.rank);
+        const rankB = rankOrder.indexOf(b.rank);
+        return (rankA === -1 ? 999 : rankA) - (rankB === -1 ? 999 : rankB);
+      });
+
+      const excelData = allCadets.map(cadet => ({
+        'Batch': cadet.Batch || 'N/A',
+        'Rank': cadet.rank || 'N/A',
+        'Name': cadet.Name || 'N/A',
+        'Regimental Number': cadet.regimentalNo || 'N/A',
+        'Department': cadet.dept || 'N/A',
+        'Student ID': cadet.secID || 'N/A',
+        'Dossier': cadet.pdfURL || 'N/A'
+      }));
+
+      if (excelData.length === 0) {
+        alert("No cadet data found for this wing.");
+        return;
+      }
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Whole Wing List");
+
+      const wscols = [
+        { wch: 15 }, // Batch
+        { wch: 15 }, // Rank
+        { wch: 30 }, // Name
+        { wch: 25 }, // Regimental No
+        { wch: 20 }, // Dept
+        { wch: 15 }, // Student ID
+        { wch: 50 }  // Dossier
+      ];
+      worksheet['!cols'] = wscols;
+
+      const fileName = `${wingType.charAt(0).toUpperCase() + wingType.slice(1)}_Wing_Full_NameList.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+
+      console.log("Whole wing Excel generated successfully");
+    } catch (err) {
+      console.error("Error generating whole wing Excel:", err);
+      alert("Failed to generate whole wing Excel file.");
+    }
+  };
+
+
+
   // Handle case where wingType is invalid
   if (!wingType || !wingData[wingType]) {
-     // You might want to navigate back or show a 404 page here
-     console.error("Invalid wing type:", wingType);
-     return <PageContainer><div>Invalid Wing Type</div></PageContainer>; // Simple fallback
+    // You might want to navigate back or show a 404 page here
+    console.error("Invalid wing type:", wingType);
+    return <PageContainer><div>Invalid Wing Type</div></PageContainer>; // Simple fallback
   }
   const wing = wingData[wingType]; // Get data for the current wing
 
   // --- JSX Rendering ---
   return (
     <PageContainer>
+      <SEO
+        title={`${wingData[wingType].title} Wing`}
+        description={`Explore the ${wingData[wingType].title} Wing of NCC at Sri Sairam Engineering College.Motto: ${wingData[wingType].motto} `}
+      />
       <BackButton onClick={() => navigate('/')} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}><ArrowLeft size={24} /></BackButton>
 
       {/* Hero Section */}
       <HeroSection>
         {/* Slideshow */}
         <CarouselWrapper>
-          <AnimatePresence>
-            {slides.length > 0 && (
+          <AnimatePresence mode="wait">
+            {slides.length > 0 ? (
               <SlideContainer
-                key={currentSlide} // Key change triggers animation
+                key={currentSlide}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 1, ease: 'easeInOut' }}
+                transition={{ duration: 1 }}
               >
-                <BlurredBackground $bgImage={slides[currentSlide].imageUrl} />
-                <MainImage $bgImage={slides[currentSlide].imageUrl} />
+                <BlurredBackground $bgImage={getOptimizedUrl(slides[currentSlide].imageUrl, 400, 20)} />
+                <MainImage $bgImage={getOptimizedUrl(slides[currentSlide].imageUrl, 1200, 70)} />
+                {slides[currentSlide].description && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '80px',
+                    left: 0,
+                    width: '100%',
+                    background: 'rgba(0,0,0,0.5)',
+                    color: 'white',
+                    padding: '1rem',
+                    textAlign: 'center',
+                    fontSize: '1.2rem',
+                    fontWeight: '500',
+                    zIndex: 5
+                  }}>
+                    {slides[currentSlide].description}
+                  </div>
+                )}
               </SlideContainer>
+            ) : (
+              <motion.div
+                style={{ width: '100%', height: '100%', background: '#0a1529' }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  color: 'white',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  textAlign: 'center',
+                  padding: '2rem'
+                }}>
+                  {slidesLoaded ? (
+                    // Loaded but empty — show a clear message
+                    <>
+                      <div style={{ fontSize: '3rem' }}>📷</div>
+                      <p style={{ opacity: 0.7, fontSize: '1.1rem', fontWeight: '600' }}>No photos added yet</p>
+                      <p style={{ opacity: 0.4, fontSize: '0.9rem' }}>Photos will appear here once uploaded by an admin.</p>
+                    </>
+                  ) : (
+                    // Still loading
+                    <>
+                      <div className="hero-skeleton-spinner"></div>
+                      <p style={{ opacity: 0.5 }}>Loading Glimpses...</p>
+                    </>
+                  )}
+                </div>
+              </motion.div>
             )}
           </AnimatePresence>
         </CarouselWrapper>
@@ -659,7 +1403,12 @@ const WingPage = () => {
           </>
         )}
         <HeroOverlay />
-        <HeroContent initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+        <HeroContent
+          $wingColor={wingType === 'army' ? '#D22B2B' : wingType === 'navy' ? '#000080' : '#87CEEB'}
+          initial={{ opacity: 0, x: -50, scale: 0.9 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          transition={{ duration: 0.6, type: 'spring', damping: 20 }}
+        >
           <WingTitle>{wing.title}</WingTitle>
           <WingMotto>"{wing.motto}"</WingMotto>
         </HeroContent>
@@ -667,32 +1416,70 @@ const WingPage = () => {
 
       {/* Main Content Area */}
       <ContentSection>
+        {/* Unit Selector for Army Wings */}
+        {(wingType.startsWith('army')) && (
+          <UnitSwitcher>
+            <UnitButton
+              $color="#D22B2B"
+              $active={wingType === 'army'}
+              onClick={() => navigate('/wing/army')}
+            >
+              <Target size={20} /> Battery (BTY)
+            </UnitButton>
+            <UnitButton
+              $color="#006400"
+              $active={wingType === 'army-med'}
+              onClick={() => navigate('/wing/army-med')}
+            >
+              <Trophy size={20} /> Medical (MED)
+            </UnitButton>
+            <UnitButton
+              $color="#8b0000"
+              $active={wingType === 'army-bn'}
+              onClick={() => navigate('/wing/army-bn')}
+            >
+              <Users size={20} /> Battalion (BN)
+            </UnitButton>
+          </UnitSwitcher>
+        )}
+
         {/* Wing Info Cards */}
         <SectionGrid>
-          {wing.info.map((info, index) => (
-            <InfoCard key={index} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
-              <CardIcon><info.icon size={28} /></CardIcon>
-              <CardTitle>{info.title}</CardTitle>
-              <CardDescription>{info.description}</CardDescription>
+          {wing.info.map((item, index) => (
+            <InfoCard
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              viewport={{ once: true }}
+            >
+              <CardIcon>
+                <item.icon size={24} />
+              </CardIcon>
+              <CardTitle>{item.title}</CardTitle>
+              <CardDescription>{item.description}</CardDescription>
             </InfoCard>
           ))}
         </SectionGrid>
 
-        {/* Conditional Rendering: Batch Selection or Batch Details */}
-        <AnimatePresence mode="wait">
+        <div style={{ marginTop: '2rem' }}>
           {!selectedBatch ? (
-            // Batch Selection View
             <motion.div key="batch-selection" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <DetailsHeader style={{ justifyContent: 'flex-end', marginBottom: '2rem' }}>
+                <NameListButton onClick={generateWholeWingNameList} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Download size={20} /> Whole Wing Name List
+                </NameListButton>
+              </DetailsHeader>
               <SelectionGrid>
                 {batches.map((batchName) => (
                   <SelectionCardContainer key={batchName} whileHover={{ scale: 1.03 }}>
-                    {user && <DeleteBatchButton onClick={(e) => {e.stopPropagation(); handleDeleteBatch(batchName);}}><Trash2 size={16} /></DeleteBatchButton>}
+                    {isAdmin && <DeleteBatchButton onClick={(e) => { e.stopPropagation(); handleDeleteBatch(batchName); }}><Trash2 size={16} /></DeleteBatchButton>}
                     <SelectionCard onClick={() => setSelectedBatch(batchName)}>
                       {batchName.includes('.') ? batchName.substring(batchName.indexOf(' ') + 1) : batchName}
                     </SelectionCard>
                   </SelectionCardContainer>
                 ))}
-                {user && ( // Show Add Batch button only if admin
+                {isAdmin && (
                   <SelectionCardContainer whileHover={{ scale: 1.03 }}>
                     <AddBatchCard onClick={() => setIsAddBatchModalOpen(true)}>
                       <Plus size={32} /> Add Batch
@@ -702,34 +1489,39 @@ const WingPage = () => {
               </SelectionGrid>
             </motion.div>
           ) : (
-            // Batch Details View
-            <motion.div key="details-view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div>
               <DetailsHeader>
                 <BackToBatchButton onClick={() => setSelectedBatch(null)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                   <ChevronLeft size={20} /> Back to Batch Selection
                 </BackToBatchButton>
-                {user && ( // Show Add Cadet button only if admin
-                  <AddNewCadetButton onClick={() => setIsAddCadetModalOpen(true)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Plus size={20} /> Add New Cadet
-                  </AddNewCadetButton>
-                )}
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <NameListButton onClick={generateNameList} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Download size={20} /> Name List
+                  </NameListButton>
+                  {isAdmin && (
+                    <AddNewCadetButton onClick={() => setIsAddCadetModalOpen(true)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Plus size={20} /> Add New Cadet
+                    </AddNewCadetButton>
+                  )}
+                </div>
               </DetailsHeader>
-              {/* Render the BatchDetails component */}
               <BatchDetails
                 wing={wingType}
                 cadetsByRank={cadetsByRank}
                 loading={loading}
                 onCadetClick={handleCadetClick}
                 onAdminEdit={handleAdminEditClick}
+                onDragEnd={handleDragEnd}
+                useRoundedFrames={selectedBatch && selectedBatch.includes('2022-2025') && (wingType === 'army' || wingType === 'airforce')}
               />
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        </div>
       </ContentSection>
 
       {/* Modals */}
       <CadetDetailModal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} cadet={selectedCadet} />
-      {user && ( // Render admin modals only if admin is logged in
+      {isAdmin && ( // Render admin modals only if admin is logged in
         <>
           <AdminCadetEditor
             isOpen={isEditModalOpen}

@@ -7,6 +7,8 @@ import { useInView } from 'react-intersection-observer';
 import armyLogo from '../../assets/army-logo.png';
 import navyLogo from '../../assets/navy-logo.png';
 import airforceLogo from '../../assets/airforce-logo.png';
+import { getOptimizedUrl } from '../../utils/imageOptimizer';
+import OptimizedImage from '../common/OptimizedImage';
 
 const WingsContainer = styled.section`
   padding: 6rem 2rem;
@@ -19,8 +21,12 @@ const WingsContainer = styled.section`
 `;
 
 const WingsContent = styled.div`
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
+
+  @media (max-width: 1440px) {
+    max-width: 1200px;
+  }
 `;
 
 const SectionTitle = styled(motion.h2)`
@@ -67,7 +73,7 @@ const WingCard = styled(motion.div)`
 
 const CardImage = styled.div`
   height: 200px;
-  background: url(${props => props.$bgImage}) center/cover;
+  overflow: hidden;
 `;
 
 const CardContent = styled.div`
@@ -131,9 +137,9 @@ const ExploreButton = styled(motion.button)`
 `;
 
 const wings = [
-    { id: 'army', title: 'Army Wing', description: 'Building strong, disciplined leaders through comprehensive military training.', icon: armyLogo, image: 'https://img.etimg.com/thumb/width-1600,height-900,imgsize-305892,resizemode-75,msid-107807698/news/defence/army-plans-rs-57000-crore-project-to-replace-t-72-tanks-with-modern-combat-vehicles.jpg' },
-    { id: 'navy', title: 'Navy Wing', description: 'Preparing maritime leaders with naval traditions, seamanship, and oceanic adventures.', icon: navyLogo, image: 'https://cf-img-a-in.tosshub.com/sites/visualstory/wp/2024/02/Screenshot-2024-02-08-at-42905-PM.png' },
-    { id: 'airforce', title: 'Air Wing', description: 'Soaring to new heights with aviation excellence and aerospace technology.', icon: airforceLogo, image: 'https://th.bing.com/th/id/OIP.fkJWC2RbMq5Pm5qAbfkepAHaEI?w=334&h=186&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3' }
+  { id: 'army', title: 'Army Wing', description: 'Building strong, disciplined leaders through comprehensive military training.', icon: armyLogo, image: 'https://img.etimg.com/thumb/width-1600,height-900,imgsize-305892,resizemode-75,msid-107807698/news/defence/army-plans-rs-57000-crore-project-to-replace-t-72-tanks-with-modern-combat-vehicles.jpg' },
+  { id: 'navy', title: 'Navy Wing', description: 'Preparing maritime leaders with naval traditions, seamanship, and oceanic adventures.', icon: navyLogo, image: 'https://cf-img-a-in.tosshub.com/sites/visualstory/wp/2024/02/Screenshot-2024-02-08-at-42905-PM.png' },
+  { id: 'airforce', title: 'Air Wing', description: 'Soaring to new heights with aviation excellence and aerospace technology.', icon: airforceLogo, image: 'https://th.bing.com/th/id/OIP.fkJWC2RbMq5Pm5qAbfkepAHaEI?w=334&h=186&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3' }
 ];
 
 // --- The component's logic is unchanged ---
@@ -164,9 +170,18 @@ const WingsSection = ({ id }) => { // ✨ Added id prop for scrolling
                 // whileHover is better handled by CSS for performance unless it's a complex animation
                 onClick={() => navigate(`/wing/${wing.id}`)}
               >
-                <CardImage $bgImage={wing.image} />
+                <CardImage>
+                  <OptimizedImage
+                    src={wing.image}
+                    width={600}
+                    quality={70}
+                    alt={wing.title}
+                    objectFit="cover"
+                    style={{ width: '100%', height: '100%' }}
+                  />
+                </CardImage>
                 <CardContent>
-                  <WingIcon><img src={wing.icon} alt={`${wing.title} Logo`} /></WingIcon>
+                  <WingIcon><img src={wing.icon} alt={`${wing.title} Logo`} loading="lazy" /></WingIcon>
                   <WingTitle>{wing.title}</WingTitle>
                   <WingDescription>{wing.description}</WingDescription>
                   <ExploreButton

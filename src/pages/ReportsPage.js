@@ -8,6 +8,7 @@ import { Plus, Trash2, ArrowLeft, Eye } from 'lucide-react';
 import AddReportModal from '../components/admin/AddReportModal';
 import AddWingReportModal from '../components/admin/AddWingReportModal';
 import CadetDetailModal from '../components/ui/CadetDetailModal';
+import SEO from '../components/common/SEO';
 
 const PageContainer = styled.div` padding: 100px 2rem 4rem; max-width: 1200px; margin: 0 auto; `;
 const Header = styled(motion.div)` text-align: center; margin-bottom: 2rem; `;
@@ -23,7 +24,6 @@ const DeleteButton = styled.button` position: absolute; top: 1rem; right: 1rem; 
 const ReportsPage = () => {
   const [yearlyReports, setYearlyReports] = useState([]);
   const [wingReports, setWingReports] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [view, setView] = useState('yearly');
   const [selectedWing, setSelectedWing] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -34,23 +34,19 @@ const ReportsPage = () => {
   const { user } = useAuth();
 
   const fetchYearlyReports = useCallback(async () => {
-    setLoading(true);
     const q = query(collection(db, "yearlyReports"), orderBy("order", "desc"));
     const querySnapshot = await getDocs(q);
     const fetchedReports = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     setYearlyReports(fetchedReports);
-    setLoading(false);
   }, []);
 
   const fetchWingReports = useCallback(async () => {
     if (!selectedWing) return;
-    setLoading(true);
     const targetCollection = `${selectedWing}Reports`;
     const q = query(collection(db, targetCollection), orderBy("order", "desc"));
     const querySnapshot = await getDocs(q);
     const fetchedReports = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     setWingReports(fetchedReports);
-    setLoading(false);
   }, [selectedWing]);
 
   useEffect(() => {
@@ -62,7 +58,7 @@ const ReportsPage = () => {
   }, [view, fetchYearlyReports, fetchWingReports, refreshKey]);
 
   const handleDataChange = () => setRefreshKey(prev => prev + 1);
-  
+
   const handleDelete = async (reportId, collectionName) => {
     if (!window.confirm("Are you sure you want to delete this report?")) return;
     try {
@@ -83,7 +79,7 @@ const ReportsPage = () => {
     if (view === 'wingSelection') {
       return (
         <>
-          <SwitchButton onClick={() => setView('yearly')}><ArrowLeft size={20}/> Back to Yearly Reports</SwitchButton>
+          <SwitchButton onClick={() => setView('yearly')}><ArrowLeft size={20} /> Back to Yearly Reports</SwitchButton>
           <ReportGrid>
             {/* ✨ "Add Wing Report" button is REMOVED from this view */}
             {['army', 'navy', 'air'].map(wing => (
@@ -101,7 +97,7 @@ const ReportsPage = () => {
     if (view === 'wingDetails') {
       return (
         <>
-          <SwitchButton onClick={() => { setView('wingSelection'); setSelectedWing(null); }}><ArrowLeft size={20}/> Back to Wing Selection</SwitchButton>
+          <SwitchButton onClick={() => { setView('wingSelection'); setSelectedWing(null); }}><ArrowLeft size={20} /> Back to Wing Selection</SwitchButton>
           <ReportGrid>
             {/* ✨ "Add Report" button is MOVED here */}
             {user && (
@@ -144,6 +140,10 @@ const ReportsPage = () => {
 
   return (
     <PageContainer>
+      <SEO
+        title="Reports"
+        description="Access annual reports, event summaries, and other official documents of NCC Sri Sairam Engineering College."
+      />
       <Header initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
         <Title>
           {view === 'yearly' && 'Yearly Reports'}
@@ -151,12 +151,12 @@ const ReportsPage = () => {
           {view === 'wingDetails' && `${selectedWing.charAt(0).toUpperCase() + selectedWing.slice(1)} Wing Reports`}
         </Title>
       </Header>
-      
+
       {view === 'yearly' && (
         <ViewSwitcher>
-            <SwitchButton onClick={() => setView('wingSelection')}>
-                <Eye size={20}/> View Wing Wise Reports
-            </SwitchButton>
+          <SwitchButton onClick={() => setView('wingSelection')}>
+            <Eye size={20} /> View Wing Wise Reports
+          </SwitchButton>
         </ViewSwitcher>
       )}
 

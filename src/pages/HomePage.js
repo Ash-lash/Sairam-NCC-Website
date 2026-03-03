@@ -1,33 +1,45 @@
-// src/pages/HomePage.js
-import React from 'react';
-import styled from 'styled-components';
+import React, { lazy, Suspense } from 'react';
 import HeroSection from '../components/sections/HeroSection';
-import PhotoSlideshow from '../components/sections/PhotoSlideshow';
-import WingsSection from '../components/sections/WingsSection';
-import AboutSection from '../components/sections/AboutSection';
-import RegistrationForm from '../components/sections/RegistrationForm';
-import Chatbot from '../components/sections/Chatbot';
-import { useAuth } from '../contexts/AuthContext'; // ✨ 1. Import useAuth
+import SEO from '../components/common/SEO';
 
-const HomeContainer = styled.div`
-  width: 100%;
-`;
+// PERFORMANCE: Lazy-load everything below the fold
+// Only HeroSection is visible on first paint — everything else loads on demand
+import LeadershipMessages from '../components/sections/LeadershipMessages';
+import WingsSection from '../components/sections/WingsSection';
+const PhotoSlideshow = lazy(() => import('../components/sections/PhotoSlideshow'));
+const RegistrationForm = lazy(() => import('../components/sections/RegistrationForm'));
+const ContactUsSection = lazy(() => import('../components/sections/ContactUsSection'));
+
+const SectionFallback = () => (
+  <div style={{ minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="skeleton-spinner" />
+  </div>
+);
 
 const HomePage = () => {
-  const { currentUser } = useAuth(); // ✨ 2. Get the current user
-
   return (
-    <HomeContainer>
-      <HeroSection />
-      {/* --- Photo Slideshow is now here --- */}
-      
-      {/* ✨ 3. Pass the currentUser prop down */}
-      <PhotoSlideshow currentUser={currentUser} /> 
-      <Chatbot />
-      <AboutSection />
-      <WingsSection id="wings" />
-      <RegistrationForm />
-    </HomeContainer>
+    <div className="home-page">
+      <SEO
+        title="SAIRAM NATIONAL CADET CORPS"
+        description="Official website of National Cadet Corps (NCC) at Sri Sairam Engineering College, Chennai. Building character, discipline, and leadership since 2003."
+      />
+      <div id="hero">
+        <HeroSection />
+      </div>
+      <Suspense fallback={<SectionFallback />}>
+        <div id="leadership">
+          <LeadershipMessages />
+        </div>
+        <PhotoSlideshow />
+        <div id="wings">
+          <WingsSection />
+        </div>
+        <div id="register">
+          <RegistrationForm />
+        </div>
+        <ContactUsSection />
+      </Suspense>
+    </div>
   );
 };
 

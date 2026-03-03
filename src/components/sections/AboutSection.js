@@ -10,10 +10,14 @@ const AboutContainer = styled.section`
   overflow: hidden;
 `;
 const AboutContent = styled.div`
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
   position: relative;
   z-index: 2;
+
+  @media (max-width: 1440px) {
+    max-width: 1200px;
+  }
 `;
 const SectionTitle = styled(motion.h2)`
   font-size: 3rem;
@@ -102,10 +106,10 @@ const AboutSection = () => {
   ];
 
   const values = [
-    { title: 'Discipline', description: 'Building character through structured training and adherence to military values and ethics.'},
-    { title: 'Leadership', description: 'Developing future leaders who can guide and inspire others in both military and civilian contexts.'},
-    { title: 'Service', description: 'Instilling a sense of duty and commitment to serve the nation with honor and dedication.'},
-    { title: 'Unity', description: 'Fostering teamwork, cooperation, and national integration among cadets from diverse backgrounds.'}
+    { title: 'Discipline', description: 'Building character through structured training and adherence to military values and ethics.' },
+    { title: 'Leadership', description: 'Developing future leaders who can guide and inspire others in both military and civilian contexts.' },
+    { title: 'Service', description: 'Instilling a sense of duty and commitment to serve the nation with honor and dedication.' },
+    { title: 'Unity', description: 'Fostering teamwork, cooperation, and national integration among cadets from diverse backgrounds.' }
   ];
 
   const containerVariants = {

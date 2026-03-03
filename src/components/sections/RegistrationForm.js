@@ -41,43 +41,47 @@ const FormGroup = styled.div`
   }
 `;
 const Label = styled.label`
-  color: #555;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-  font-weight: 500;
+  color: #334155;
+  margin-bottom: 0.6rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-left: 0.2rem;
 `;
 const Input = styled.input`
-  background: #F0F2F5;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
   color: #1A2B4C;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
   font-size: 1rem;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   &:focus {
     outline: none;
-    border-color: #FFBF00;
-    box-shadow: 0 0 0 3px rgba(255, 191, 0, 0.3);
+    border-color: #1A2B4C;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(26, 43, 76, 0.1);
   }
 `;
 const Select = styled.select`
-  background: #F0F2F5;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
   color: #1A2B4C;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
   font-size: 1rem;
+  font-family: inherit;
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%2L287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2220%22%20height%3D%2220%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M5%207l5%205%205-5%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20fill%3D%22none%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E');
   background-repeat: no-repeat;
-  background-position: right .7em top 50%;
-  background-size: .65em auto;
+  background-position: right 1rem center;
+  background-size: 1.25rem;
   &:focus {
     outline: none;
-    border-color: #FFBF00;
-    box-shadow: 0 0 0 3px rgba(255, 191, 0, 0.3);
+    border-color: #1A2B4C;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(26, 43, 76, 0.1);
   }
 `;
 const SubmitButton = styled(motion.button)`
@@ -86,11 +90,15 @@ const SubmitButton = styled(motion.button)`
   border: none;
   color: #FFFFFF;
   padding: 1rem 2rem;
-  border-radius: 50px;
-  font-weight: 600;
+  border-radius: 12px;
+  font-weight: 700;
   font-size: 1.1rem;
   cursor: pointer;
   margin-top: 1rem;
+  transition: all 0.2s;
+  &:hover { background: #111d35; transform: translateY(-1px); }
+  &:active { transform: translateY(0); }
+  &:disabled { background: #94a3b8; cursor: not-allowed; }
 `;
 const Message = styled.p`
   grid-column: 1 / -1;
@@ -121,11 +129,11 @@ const RegistrationForm = () => {
 
     try {
       // Send the data to the Google Apps Script
-      const response = await fetch(SCRIPT_URL, {
+      await fetch(SCRIPT_URL, {
         method: 'POST',
         // 'mode: no-cors' is a temporary workaround for Google Script's CORS behavior
         // We "fire and forget" and assume it worked.
-        mode: 'no-cors', 
+        mode: 'no-cors',
         headers: {
           'Content-Type': 'application/json',
         },

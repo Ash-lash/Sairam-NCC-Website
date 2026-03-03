@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 import styled from "styled-components";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
@@ -9,28 +9,18 @@ import {
   limit,
   getDocs,
 } from "firebase/firestore";
-import { db, auth } from "../../firebase";
-import { onAuthStateChanged } from "firebase/auth";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-import { format, parseISO, startOfWeek, startOfMonth, isValid } from "date-fns";
+import { db } from "../../firebase";
+import { getOptimizedUrl, preloadImages } from "../../utils/imageOptimizer";
+import OptimizedImage from '../common/OptimizedImage';
 
 // ---------- Styled Components ----------
 const SlideshowContainer = styled.section`
-  padding: 6rem 0;
-  width: 100vw;
+  padding: ${props => props.$isModal ? '0' : '6rem 0'};
+  width: ${props => props.$isModal ? '100%' : '100vw'};
   position: relative;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #f0f2f5;
+  left: ${props => props.$isModal ? '0' : '50%'};
+  transform: ${props => props.$isModal ? 'none' : 'translateX(-50%)'};
+  background: ${props => props.$isModal ? 'transparent' : '#f0f2f5'};
   overflow: hidden;
 `;
 
@@ -53,27 +43,29 @@ const SectionTitle = styled(motion.h2)`
 const CarouselWrapper = styled.div`
   position: relative;
   width: 100%;
-  height: 600px;
+  height: ${props => props.$isModal ? '90vh' : '600px'};
   display: flex;
   justify-content: center;
   align-items: center;
   perspective: 2000px;
 
   @media (max-width: 768px) {
-    height: 400px;
+    height: ${props => props.$isModal ? '70vh' : '400px'};
   }
 `;
 
 const SlideCard = styled(motion.div)`
   position: absolute;
-  width: 60%;
-  max-width: 900px;
   height: 100%;
+  width: 80vw;
+  max-width: 1000px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   border-radius: 20px;
-  background-size: cover;
-  background-position: center;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  background-image: url(${(props) => props.$bgImage});
+  background-color: transparent;
+  filter: drop-shadow(0 10px 40px rgba(0, 0, 0, 0.5));
   transform-style: preserve-3d;
 `;
 
@@ -81,7 +73,7 @@ const NavArrow = styled(motion.button)`
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.2);
   border: none;
   border-radius: 50%;
   width: 50px;
@@ -90,10 +82,10 @@ const NavArrow = styled(motion.button)`
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  z-index: 20;
-  backdrop-filter: blur(5px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  color: #1a2b4c;
+  z-index: 100;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  color: white;
+  backdrop-filter: blur(10px);
 
   &.prev {
     left: 2rem;
@@ -101,81 +93,114 @@ const NavArrow = styled(motion.button)`
   &.next {
     right: 2rem;
   }
+
+  @media (max-width: 768px) {
+    width: 40px;
+    height: 40px;
+    &.prev { left: 0.5rem; }
+    &.next { right: 0.5rem; }
+  }
 `;
 
 const DotsContainer = styled.div`
   display: flex;
   justify-content: center;
   gap: 15px;
-  margin-top: 3rem;
+  margin-top: 2rem;
+`;
+
+const DescriptionOverlay = styled(motion.div)`
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 4rem 2rem 2rem;
+  background: linear-gradient(to top, rgba(26, 43, 76, 0.9) 0%, rgba(26, 43, 76, 0.4) 60%, transparent 100%);
+  color: white;
+  text-align: left;
+  display: flex;
+  align-items: flex-end;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  pointer-events: none;
+  z-index: 30;
+`;
+
+const InfoBlade = styled(motion.div)`
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  max-width: 80%;
+`;
+
+const GoldBar = styled(motion.div)`
+  width: 4px;
+  height: 40px;
+  background: #FFBF00;
+  border-radius: 2px;
+  box-shadow: 0 0 15px rgba(255, 191, 0, 0.5);
+`;
+
+const DescriptionText = styled(motion.div)`
+  display: flex;
+  flex-direction: column;
+  
+  .label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #FFBF00;
+    margin-bottom: 4px;
+  }
+  
+  .text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
 `;
 
 const Dot = styled(motion.button)`
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   border: none;
   cursor: pointer;
-  background: ${(props) => (props.$active ? "#1A2B4C" : "#c7d0e1")};
-`;
-
-const ViewCountText = styled.p`
-  margin-top: 1rem;
-  font-size: 1.2rem;
-  color: #1A2B4C;
-  font-weight: 500;
-`;
-
-const GraphContainer = styled.div`
-  background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  padding: 2.5rem;
-  max-width: 1200px;
-  width: 90%;
-  margin: 3rem auto 0;
-`;
-
-const ToggleButtons = styled.div`
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-  gap: 1rem;
-`;
-
-const ToggleButton = styled(motion.button)`
-  background: ${(props) => (props.$active ? "#1A2B4C" : "#c7d0e1")};
-  color: ${(props) => (props.$active ? "#fff" : "#1A2B4C")};
-  border: none;
-  border-radius: 20px;
-  padding: 10px 25px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.3s;
+  background: ${(props) => (props.$active ? "white" : "rgba(255,255,255,0.3)")};
 `;
 
 // ---------- Component ----------
-const PhotoSlideshow = () => {
+const PhotoSlideshow = ({
+  collectionName = "slideshowImages",
+  images = null,
+  title = "Glimpses of Glory",
+  currentIndex = 0,
+  onSlideChange = () => { },
+  isModal = false
+}) => {
   const [slides, setSlides] = useState([]);
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [viewMode, setViewMode] = useState("daily");
-  const [viewData, setViewData] = useState([]);
+  const [currentSlide, setCurrentSlide] = useState(currentIndex);
 
-  const adminUID = "ECxt1VpvDmMtcYPD1IvFsnGg57u2";
-  const isAdmin = currentUser?.uid === adminUID;
-
-  // Track Firebase Auth user
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => setCurrentUser(user));
-    return () => unsubscribe();
-  }, []);
+    onSlideChange(currentSlide);
+  }, [currentSlide, onSlideChange]);
 
   // Fetch slides (dummy fallback)
   useEffect(() => {
+    if (images) {
+      setSlides(prev => {
+        if (prev.length === images.length && prev[0]?.id === images[0]?.id) return prev;
+        return images;
+      });
+      return;
+    }
+
     const fetchSlides = async () => {
       try {
-        const q = query(collection(db, "slideshowImages"), orderBy("order", "asc"), limit(20));
+        const q = query(collection(db, collectionName), orderBy("order", "asc"), limit(20));
         const snapshot = await getDocs(q);
         if (snapshot.empty) {
           setSlides([
@@ -184,7 +209,11 @@ const PhotoSlideshow = () => {
             { id: 3, imageUrl: "https://picsum.photos/800/400?random=3" },
           ]);
         } else {
-          setSlides(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+          const fetched = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+          setSlides(fetched);
+          // Preload first 3 images immediately
+          const urls = fetched.slice(0, 3).map(s => getOptimizedUrl(s.imageUrl, isModal ? 2000 : 1200, 80));
+          preloadImages(urls);
         }
       } catch {
         setSlides([
@@ -195,108 +224,131 @@ const PhotoSlideshow = () => {
       }
     };
     fetchSlides();
-  }, []);
+  }, [collectionName, images, isModal]);
 
-  // Fetch view data (dummy fallback)
+  const nextSlide = useCallback(() => slides.length && setCurrentSlide((prev) => (prev + 1) % slides.length), [slides.length]);
+  const prevSlide = useCallback(() => slides.length && setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length), [slides.length]);
+
+  // Keyboard navigation
   useEffect(() => {
-    const fetchGraphData = async () => {
-      try {
-        const q = query(collection(db, "slideshowDailyViews"), orderBy("date", "asc"));
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-          setViewData([
-            { date: "2025-11-01", views: 5 },
-            { date: "2025-11-02", views: 9 },
-            { date: "2025-11-03", views: 14 },
-            { date: "2025-11-04", views: 19 },
-            { date: "2025-11-05", views: 25 },
-            { date: "2025-11-06", views: 31 },
-            { date: "2025-11-07", views: 38 },
-          ]);
-        } else {
-          const fetchedData = snapshot.docs
-            .map((doc) => ({
-              date: doc.id,
-              views: Number(doc.data().views) || 0,
-            }))
-            .filter((d) => isValid(parseISO(d.date)));
-          setViewData(fetchedData);
-        }
-      } catch {
-        setViewData([
-          { date: "2025-11-01", views: 5 },
-          { date: "2025-11-02", views: 9 },
-          { date: "2025-11-03", views: 14 },
-          { date: "2025-11-04", views: 19 },
-          { date: "2025-11-05", views: 25 },
-          { date: "2025-11-06", views: 31 },
-          { date: "2025-11-07", views: 38 },
-        ]);
-      }
+    const handleKeyDown = (e) => {
+      if (e.key === "ArrowRight") nextSlide();
+      else if (e.key === "ArrowLeft") prevSlide();
     };
-    fetchGraphData();
-  }, []);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [nextSlide, prevSlide]);
 
-  const groupData = (mode) => {
-    const grouped = {};
-    viewData.forEach((d) => {
-      let key;
-      const parsedDate = parseISO(d.date);
-      if (!isValid(parsedDate)) return;
-      if (mode === "weekly") key = format(startOfWeek(parsedDate), "yyyy-MM-dd");
-      else if (mode === "monthly") key = format(startOfMonth(parsedDate), "yyyy-MM");
-      else key = format(parsedDate, "yyyy-MM-dd");
-      grouped[key] = (grouped[key] || 0) + d.views;
-    });
-    return Object.keys(grouped).map((key) => ({ date: key, views: grouped[key] }));
-  };
-
-  const chartData = groupData(viewMode);
-  const viewCount = chartData.length ? chartData[chartData.length - 1].views : 0;
-
-  const nextSlide = () => slides.length && setCurrentSlide((prev) => (prev + 1) % slides.length);
-  const prevSlide = () => slides.length && setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  // Preload adjacent slides for instant transitions
+  useEffect(() => {
+    if (slides.length <= 1) return;
+    const nextIdx = (currentSlide + 1) % slides.length;
+    const prevIdx = (currentSlide - 1 + slides.length) % slides.length;
+    preloadImages([
+      getOptimizedUrl(slides[nextIdx]?.imageUrl, isModal ? 2000 : 1200, 80),
+      getOptimizedUrl(slides[prevIdx]?.imageUrl, isModal ? 2000 : 1200, 80),
+    ]);
+  }, [currentSlide, slides, isModal]);
 
   if (!slides.length) return null;
 
   return (
-    <SlideshowContainer>
+    <SlideshowContainer $isModal={isModal}>
       <SlideshowContent>
-        <SectionTitle
-          initial={{ opacity: 0, y: -50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-        >
-          Glimpses of Glory
-        </SectionTitle>
+        {title && (
+          <SectionTitle
+            initial={{ opacity: 0, y: -50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            {title}
+          </SectionTitle>
+        )}
 
-        <CarouselWrapper>
-          <AnimatePresence>
-            {slides.map((slide, index) => {
-              const offset = index - currentSlide;
-              let adjustedOffset = offset;
-              if (offset > slides.length / 2) adjustedOffset = offset - slides.length;
-              else if (offset < -slides.length / 2) adjustedOffset = offset + slides.length;
-              if (Math.abs(adjustedOffset) > 2) return null;
+        <CarouselWrapper $isModal={isModal}>
+          {slides.map((slide, index) => {
+            const offset = index - currentSlide;
+            let adjustedOffset = offset;
+            if (offset > slides.length / 2) adjustedOffset = offset - slides.length;
+            else if (offset < -slides.length / 2) adjustedOffset = offset + slides.length;
 
-              const isCurrent = adjustedOffset === 0;
-              return (
-                <SlideCard
-                  key={slide.id}
-                  $bgImage={slide.imageUrl}
-                  animate={{
-                    x: `${adjustedOffset * 35}%`,
-                    rotateY: adjustedOffset * -25,
-                    scale: isCurrent ? 1 : 0.7,
-                    opacity: isCurrent ? 1 : 0.3,
-                    zIndex: slides.length - Math.abs(adjustedOffset),
-                  }}
-                  transition={{ type: "spring", stiffness: 200, damping: 25 }}
-                />
-              );
-            })}
-          </AnimatePresence>
+            const isVisible = Math.abs(adjustedOffset) <= 1;
+            if (!isVisible && !isModal) return null;
+
+            const isCurrent = adjustedOffset === 0;
+
+            const animationProps = isModal ? {
+              x: `${adjustedOffset * 100}%`,
+              scale: 1,
+              rotateY: 0,
+              opacity: isCurrent ? 1 : 0,
+              zIndex: isCurrent ? 10 : 0,
+            } : {
+              x: `${adjustedOffset * 30}vw`,
+              rotateY: adjustedOffset * -25,
+              scale: isCurrent ? 1 : 0.7,
+              opacity: isCurrent ? 1 : 0.3,
+              zIndex: slides.length - Math.abs(adjustedOffset),
+            };
+
+            return (
+              <SlideCard
+                key={slide.id}
+                animate={animationProps}
+                transition={{ type: "spring", stiffness: 260, damping: 30 }}
+                style={{ width: isModal ? '100%' : '80vw', maxWidth: '1000px' }}
+              >
+                <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  {slide.imageUrl ? (
+                    <OptimizedImage
+                      src={slide.imageUrl}
+                      width={isModal ? 2000 : 1200}
+                      quality={80}
+                      alt="Slide"
+                      objectFit="contain"
+                      style={{ borderRadius: '20px', backgroundColor: '#000' }}
+                    />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', background: '#000', borderRadius: '20px' }} />
+                  )}
+                  {slide.description && isCurrent && (
+                    <DescriptionOverlay
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <InfoBlade>
+                        <GoldBar
+                          initial={{ height: 0 }}
+                          animate={{ height: 50 }}
+                          transition={{ delay: 0.3, duration: 0.5, ease: "circOut" }}
+                        />
+                        <DescriptionText>
+                          <motion.span
+                            className="label"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.4, duration: 0.4 }}
+                          >
+                            NCC Momentum
+                          </motion.span>
+                          <motion.span
+                            className="text"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.5, duration: 0.4 }}
+                          >
+                            {slide.description}
+                          </motion.span>
+                        </DescriptionText>
+                      </InfoBlade>
+                    </DescriptionOverlay>
+                  )}
+                </div>
+              </SlideCard>
+            );
+          })}
 
           {slides.length > 1 && (
             <>
@@ -320,48 +372,6 @@ const PhotoSlideshow = () => {
             />
           ))}
         </DotsContainer>
-
-        {isAdmin && (
-          <>
-            <ViewCountText>Viewed by {viewCount} members</ViewCountText>
-
-            <GraphContainer>
-              <motion.h3
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                style={{ textAlign: "center", color: "#1A2B4C", marginBottom: "1rem" }}
-              >
-                View Analytics
-              </motion.h3>
-
-              <ToggleButtons>
-                {["daily", "weekly", "monthly"].map((mode) => (
-                  <ToggleButton
-                    key={mode}
-                    $active={viewMode === mode}
-                    onClick={() => setViewMode(mode)}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                  </ToggleButton>
-                ))}
-              </ToggleButtons>
-
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line type="monotone" dataKey="views" stroke="#1A2B4C" strokeWidth={3} activeDot={{ r: 8 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </GraphContainer>
-          </>
-        )}
       </SlideshowContent>
     </SlideshowContainer>
   );

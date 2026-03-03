@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { X, CheckCircle } from 'lucide-react';
 import { db } from '../../firebase'; // Still using Firestore for data
-import { supabase } from '../../supabaseClient'; // 1. IMPORT SUPABASE
+import { uploadFileToFirebaseStorage } from '../../utils/firebaseStorage';
 import { collection, addDoc } from 'firebase/firestore';
 
 // --- STYLES (No Change) ---
@@ -39,29 +39,6 @@ const AddReportModal = ({ isOpen, onClose, onComplete }) => {
     }
   }, [isOpen]);
 
-  // 2. SUPABASE UPLOAD FUNCTION
-  const uploadFileToSupabase = async (file, bucketPath) => {
-    if (!file) return '';
-    
-    const filePath = `${bucketPath}/${file.name}_${Date.now()}`;
-    setMessage(`Uploading ${file.name}...`);
-    
-    const { error } = await supabase.storage
-      .from('cadet-files') // This is your public bucket name
-      .upload(filePath, file);
-
-    if (error) {
-      throw new Error(`Supabase Error: ${error.message}`);
-    }
-    
-    // Get the public URL to store in Firestore
-    const { data } = supabase
-      .storage
-      .from('cadet-files')
-      .getPublicUrl(filePath);
-      
-    return data.publicUrl;
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -71,14 +48,20 @@ const AddReportModal = ({ isOpen, onClose, onComplete }) => {
     }
 
     setIsSubmitting(true);
-    
+
     try {
-      // 3. Upload PDF to Supabase
-      const pdfURL = await uploadFileToSupabase(pdfFile, 'yearly-reports');
+      const uploadFileToFirebase = async (file, folderPath) => {
+        if (!file) return '';
+        setMessage(`Uploading ${file.name}...`);
+        return uploadFileToFirebaseStorage(file, folderPath);
+      };
+
+      // 3. Upload PDF to Firebase Storage (via shared utility)
+      const pdfURL = await uploadFileToFirebase(pdfFile, 'yearly-reports');
 
       setMessage('Saving report to database...');
 
-      // 4. Save the new Supabase URL to Firestore
+      // 4. Save the new Firebase URL to Firestore
       await addDoc(collection(db, 'yearlyReports'), {
         title: title,
         pdfURL: pdfURL,
