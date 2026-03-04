@@ -231,6 +231,7 @@ const AdminDownloadsPage = () => {
         title: '',
         category: 'NCC Enrollment',
         folderName: '',
+        subFolderName: '',
         file: null
     });
 
@@ -264,6 +265,15 @@ const AdminDownloadsPage = () => {
         return Array.from(new Set(folders)).sort();
     }, [documents, formData.category]);
 
+    // Extract unique subfolders for the current category and parent folder
+    const existingSubFolders = useMemo(() => {
+        const subfolders = documents
+            .filter(doc => doc.category === formData.category && doc.folderName === formData.folderName)
+            .map(doc => doc.subFolderName)
+            .filter(Boolean);
+        return Array.from(new Set(subfolders)).sort();
+    }, [documents, formData.category, formData.folderName]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.file || !formData.title) return alert("Title and File are mandatory.");
@@ -278,12 +288,13 @@ const AdminDownloadsPage = () => {
                 title: formData.title,
                 category: formData.category,
                 folderName: formData.folderName.trim() || 'General Resources',
+                subFolderName: formData.subFolderName.trim() || '',
                 fileUrl: url,
                 createdAt: new Date().toISOString(),
                 size: (formData.file.size / 1024 / 1024).toFixed(2) + ' MB'
             });
 
-            setFormData({ title: '', category: 'NCC Enrollment', folderName: '', file: null });
+            setFormData({ title: '', category: 'NCC Enrollment', folderName: '', subFolderName: '', file: null });
             fetchDocuments();
         } catch (error) {
             console.error(error);
@@ -350,7 +361,7 @@ const AdminDownloadsPage = () => {
                                     list="folder-options"
                                     placeholder="Select or type new folder..."
                                     value={formData.folderName}
-                                    onChange={e => setFormData({ ...formData, folderName: e.target.value })}
+                                    onChange={e => setFormData({ ...formData, folderName: e.target.value, subFolderName: '' })}
                                 />
                                 <datalist id="folder-options">
                                     {existingFolders.map(folder => (
@@ -359,6 +370,24 @@ const AdminDownloadsPage = () => {
                                 </datalist>
                                 <span style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '5px', display: 'block' }}>
                                     {existingFolders.length > 0 ? "Type to add a new folder or select from list" : "Type to create first folder"}
+                                </span>
+                            </InputGroup>
+
+                            <InputGroup>
+                                <label>Sub Folder (Optional)</label>
+                                <DarkInput
+                                    list="subfolder-options"
+                                    placeholder="e.g. 2024 Batch / Medical Forms"
+                                    value={formData.subFolderName}
+                                    onChange={e => setFormData({ ...formData, subFolderName: e.target.value })}
+                                />
+                                <datalist id="subfolder-options">
+                                    {existingSubFolders.map(sub => (
+                                        <option key={sub} value={sub} />
+                                    ))}
+                                </datalist>
+                                <span style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '5px', display: 'block' }}>
+                                    Optional: Create a nested sub-folder
                                 </span>
                             </InputGroup>
 
@@ -413,6 +442,7 @@ const AdminDownloadsPage = () => {
                                                 <h4>{doc.title}</h4>
                                                 <p>
                                                     <FolderOpen size={14} /> {doc.folderName}
+                                                    {doc.subFolderName && <span style={{ color: '#3b82f6', display: 'inline-flex', alignItems: 'center', gap: '4px' }}> <ChevronRight size={12} /> {doc.subFolderName}</span>}
                                                     <CategoryBadge $cat={doc.category}>{doc.category}</CategoryBadge>
                                                     <span style={{ color: '#94a3b8' }}>• {doc.size}</span>
                                                 </p>

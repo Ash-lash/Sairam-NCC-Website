@@ -42,23 +42,73 @@ const PageContainer = styled(motion.div)`
   padding-top: 72px;
   background-color: #F0F2F5;
 `;
-const BackButton = styled(motion.button)`
+const NavStack = styled.div`
   position: fixed;
   top: 100px;
   left: 2rem;
   z-index: 1001;
-  background: #FFFFFF;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  color: #1A2B4C;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none; /* Container itself shouldn't block */
+
+  @media (max-width: 768px) {
+    top: 20px;
+    left: 1rem;
+    gap: 8px;
+  }
+`;
+
+const PremiumNavButton = styled(motion.button)`
+  pointer-events: auto;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.75rem 1.25rem;
+  border-radius: 14px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 12px;
+  color: #1A2B4C;
+  font-weight: 700;
+  font-size: 0.9rem;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  width: fit-content;
+  border-left: 4px solid ${props => props.$accent || '#1A2B4C'};
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  .icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    background: ${props => props.$accent + '15' || '#f0f2f5'};
+    color: ${props => props.$accent || '#1A2B4C'};
+  }
+
+  span {
+    white-space: nowrap;
+    opacity: 0.8;
+  }
+
+  &:hover {
+    background: white;
+    transform: translateX(10px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+    border-left-width: 8px;
+    span { opacity: 1; }
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
+    span { display: ${props => props.$hideOnMobile ? 'none' : 'block'}; }
+  }
 `;
+
 const HeroSection = styled.div`
   height: 88vh;
   position: relative;
@@ -340,9 +390,11 @@ const DetailsHeader = styled.div`
   flex-wrap: wrap;
   gap: 1rem;
 `;
-const BackToBatchButton = styled(motion.button)`
+// Removed BackToBatchButton as it's replaced by PremiumNavButton in the NavStack
+
+const AddNewCadetButton = styled(motion.button)`
   background: #FFFFFF;
-  border: 1px solid #ddd;
+  border: 1px solid #1A2B4C;
   color: #1A2B4C;
   padding: 0.75rem 1.5rem;
   border-radius: 50px;
@@ -351,10 +403,7 @@ const BackToBatchButton = styled(motion.button)`
   align-items: center;
   gap: 0.5rem;
   font-weight: 600;
-`;
-const AddNewCadetButton = styled(BackToBatchButton)`
-  border-color: #1A2B4C;
-  color: #1A2B4C;
+  
   &:hover {
     background: #1A2B4C;
     color: white;
@@ -1317,7 +1366,36 @@ const WingPage = () => {
         title={`${wingData[wingType].title} Wing`}
         description={`Explore the ${wingData[wingType].title} Wing of NCC at Sri Sairam Engineering College.Motto: ${wingData[wingType].motto} `}
       />
-      <BackButton onClick={() => navigate('/')} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}><ArrowLeft size={24} /></BackButton>
+      <NavStack>
+        <PremiumNavButton
+          $accent={wing.color}
+          onClick={() => navigate('/')}
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <div className="icon-wrapper"><ArrowLeft size={18} /></div>
+          <span>Back to Home</span>
+        </PremiumNavButton>
+
+        <AnimatePresence>
+          {selectedBatch && (
+            <PremiumNavButton
+              $accent="#FFBF00"
+              onClick={() => setSelectedBatch(null)}
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="icon-wrapper"><ChevronLeft size={18} /></div>
+              <span>Batch Selection</span>
+            </PremiumNavButton>
+          )}
+        </AnimatePresence>
+      </NavStack>
 
       {/* Hero Section */}
       <HeroSection>
@@ -1491,9 +1569,8 @@ const WingPage = () => {
           ) : (
             <div>
               <DetailsHeader>
-                <BackToBatchButton onClick={() => setSelectedBatch(null)} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <ChevronLeft size={20} /> Back to Batch Selection
-                </BackToBatchButton>
+                <div style={{ visibility: 'hidden', padding: '0.75rem 1.5rem' }}>Spacer</div>
+
                 <div style={{ display: 'flex', gap: '1rem' }}>
                   <NameListButton onClick={generateNameList} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                     <Download size={20} /> Name List

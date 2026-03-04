@@ -273,12 +273,48 @@ const DownloadBtn = styled.a`
   @media (max-width: 768px) { width: 100%; justify-content: center; }
 `;
 
+const SubFolderWrapper = styled.div`
+  margin: 1rem 3rem 1rem 5rem;
+  background: #f8fafc;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+
+  @media (max-width: 768px) { margin: 1rem; }
+`;
+
+const SubFolderHeader = styled.div`
+  padding: 1.2rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  background: ${props => props.$isOpen ? '#eff6ff' : 'white'};
+  transition: all 0.2s;
+
+  &:hover { background: #eff6ff; }
+`;
+
+const SubFolderTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  color: ${NAVY};
+
+  h3 { margin: 0; font-size: 1.1rem; font-weight: 700; }
+  
+  .sub-folder-icon {
+    color: #3b82f6;
+  }
+`;
+
 const DownloadsPage = () => {
   const [activeTab, setActiveTab] = useState('Parade Schedule');
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [openFolders, setOpenFolders] = useState({});
+  const [openSubFolders, setOpenSubFolders] = useState({});
 
   useEffect(() => { fetchDocuments(); }, []);
 
@@ -301,17 +337,33 @@ const DownloadsPage = () => {
     }));
   };
 
+  const toggleSubFolder = (subKey) => {
+    setOpenSubFolders(prev => ({
+      ...prev,
+      [subKey]: !prev[subKey]
+    }));
+  };
+
   const filteredDocs = documents.filter(d => {
     const matchesTab = d.category === activeTab;
     const matchesSearch = d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (d.folderName && d.folderName.toLowerCase().includes(searchQuery.toLowerCase()));
+      (d.folderName && d.folderName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (d.subFolderName && d.subFolderName.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesTab && matchesSearch;
   });
 
   const grouped = filteredDocs.reduce((acc, doc) => {
     const folder = doc.folderName || 'General Resources';
-    if (!acc[folder]) acc[folder] = [];
-    acc[folder].push(doc);
+    const subFolder = doc.subFolderName || '';
+
+    if (!acc[folder]) acc[folder] = { files: [], subFolders: {} };
+
+    if (subFolder) {
+      if (!acc[folder].subFolders[subFolder]) acc[folder].subFolders[subFolder] = [];
+      acc[folder].subFolders[subFolder].push(doc);
+    } else {
+      acc[folder].files.push(doc);
+    }
     return acc;
   }, {});
 
@@ -386,55 +438,105 @@ const DownloadsPage = () => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
             >
-              {Object.entries(grouped).map(([folderName, files], idx) => (
-                <FolderWrapper
-                  key={folderName}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1 }}
-                >
-                  <FolderHeader
-                    $isOpen={openFolders[folderName]}
-                    onClick={() => toggleFolder(folderName)}
-                  >
-                    <FolderTitle>
-                      <div className="folder-icon"><Folder size={28} /></div>
-                      <div>
-                        <h2>{folderName}</h2>
-                        <span className="num-badge">{files.length} Resources</span>
-                      </div>
-                    </FolderTitle>
-                    <div style={{ width: 40, height: 40, background: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: NAVY }}>
-                      {openFolders[folderName] ? <ChevronDown /> : <ChevronRight />}
-                    </div>
-                  </FolderHeader>
+              {Object.entries(grouped).map(([folderName, folderData], idx) => {
+                const totalFiles = folderData.files.length +
+                  Object.values(folderData.subFolders).reduce((sum, sub) => sum + sub.length, 0);
 
-                  <AnimatePresence>
-                    {openFolders[folderName] && (
-                      <FileList
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                      >
-                        {files.map(file => (
-                          <FileItem key={file.id}>
-                            <FileDetails>
-                              <div className="icon"><File size={20} /></div>
-                              <div className="text">
-                                <h4>{file.title}</h4>
-                                <p><Info size={14} /> {file.size || 'PDF Archive'}</p>
-                              </div>
-                            </FileDetails>
-                            <DownloadBtn href={file.fileUrl} target="_blank">
-                              Download <Download size={18} />
-                            </DownloadBtn>
-                          </FileItem>
-                        ))}
-                      </FileList>
-                    )}
-                  </AnimatePresence>
-                </FolderWrapper>
-              ))}
+                return (
+                  <FolderWrapper
+                    key={folderName}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                  >
+                    <FolderHeader
+                      $isOpen={openFolders[folderName]}
+                      onClick={() => toggleFolder(folderName)}
+                    >
+                      <FolderTitle>
+                        <div className="folder-icon"><Folder size={28} /></div>
+                        <div>
+                          <h2>{folderName}</h2>
+                          <span className="num-badge">{totalFiles} Resources</span>
+                        </div>
+                      </FolderTitle>
+                      <div style={{ width: 40, height: 40, background: '#f8fafc', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: NAVY }}>
+                        {openFolders[folderName] ? <ChevronDown /> : <ChevronRight />}
+                      </div>
+                    </FolderHeader>
+
+                    <AnimatePresence>
+                      {openFolders[folderName] && (
+                        <FileList
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                        >
+                          {/* Direct Files in Folder */}
+                          {folderData.files.map(file => (
+                            <FileItem key={file.id}>
+                              <FileDetails>
+                                <div className="icon"><File size={20} /></div>
+                                <div className="text">
+                                  <h4>{file.title}</h4>
+                                  <p><Info size={14} /> {file.size || 'PDF Archive'}</p>
+                                </div>
+                              </FileDetails>
+                              <DownloadBtn href={file.fileUrl} target="_blank">
+                                Download <Download size={18} />
+                              </DownloadBtn>
+                            </FileItem>
+                          ))}
+
+                          {/* Sub Folders */}
+                          {Object.entries(folderData.subFolders).map(([subName, subFiles]) => (
+                            <SubFolderWrapper key={subName}>
+                              <SubFolderHeader
+                                $isOpen={openSubFolders[`${folderName}-${subName}`]}
+                                onClick={() => toggleSubFolder(`${folderName}-${subName}`)}
+                              >
+                                <SubFolderTitle>
+                                  <div className="sub-folder-icon"><Folder size={20} /></div>
+                                  <h3>{subName}</h3>
+                                </SubFolderTitle>
+                                <div style={{ color: '#94a3b8' }}>
+                                  {openSubFolders[`${folderName}-${subName}`] ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                                </div>
+                              </SubFolderHeader>
+
+                              <AnimatePresence>
+                                {openSubFolders[`${folderName}-${subName}`] && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    style={{ background: 'white' }}
+                                  >
+                                    {subFiles.map(file => (
+                                      <FileItem key={file.id} style={{ paddingLeft: '4rem' }}>
+                                        <FileDetails>
+                                          <div className="icon"><File size={18} /></div>
+                                          <div className="text">
+                                            <h4>{file.title}</h4>
+                                            <p><Info size={12} /> {file.size || 'PDF Archive'}</p>
+                                          </div>
+                                        </FileDetails>
+                                        <DownloadBtn href={file.fileUrl} target="_blank" style={{ transform: 'scale(0.9)' }}>
+                                          Download <Download size={16} />
+                                        </DownloadBtn>
+                                      </FileItem>
+                                    ))}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </SubFolderWrapper>
+                          ))}
+                        </FileList>
+                      )}
+                    </AnimatePresence>
+                  </FolderWrapper>
+                );
+              })}
 
               {Object.keys(grouped).length === 0 && (
                 <div style={{ textAlign: 'center', padding: '8rem 2rem', background: 'white', borderRadius: '32px', border: '1px solid #e2e8f0' }}>
