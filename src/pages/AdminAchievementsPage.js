@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { Plus, Edit2, Trash2, Save, X, Upload, Image as ImageIcon, Calendar, Award, FileText, GripVertical, Grid as GridIcon, Users, UserPlus, XCircle, User } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Upload, Image as ImageIcon, Calendar, Award, FileText, GripVertical, Grid as GridIcon, Users, UserPlus, XCircle, User, Download } from 'lucide-react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { uploadFileToFirebaseStorage as uploadFile } from '../utils/firebaseStorage';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
+import { downloadImage } from '../utils/downloadHelper';
 import SEO from '../components/common/SEO';
 import ImageCropper from '../components/admin/ImageCropper';
 
@@ -274,6 +275,24 @@ const IconButton = styled.button`
 
   &:hover {
     background: ${props => props.$variant === 'delete' ? '#FEE2E2' : '#DBEAFE'};
+  }
+`;
+const DownloadActionButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  background: ${props => props.$variant === 'report' ? '#ecfdf5' : '#eff6ff'};
+  color: ${props => props.$variant === 'report' ? '#059669' : '#2563eb'};
+  font-weight: 700;
+  font-size: 0.75rem;
+  transition: all 0.2s;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
   }
 `;
 
@@ -974,6 +993,25 @@ const AdminAchievementsPage = () => {
                   </CardBody>
 
                   <CardFooter>
+                    {(item.isGroup ? item.groupPhotoUrl : item.cadetPhotoUrl) && (
+                      <DownloadActionButton
+                        onClick={() => downloadImage(item.isGroup ? item.groupPhotoUrl : item.cadetPhotoUrl, `achievement_${item.cadetName || (item.campName || item.eventName)}`)}
+                        title="Download Photo"
+                      >
+                        <Download size={14} />
+                        Photo
+                      </DownloadActionButton>
+                    )}
+                    {item.reportUrl && (
+                      <DownloadActionButton
+                        $variant="report"
+                        onClick={() => downloadImage(item.reportUrl, `report_${item.cadetName || (item.campName || item.eventName)}.pdf`)}
+                        title="Download Report"
+                      >
+                        <FileText size={14} />
+                        Report
+                      </DownloadActionButton>
+                    )}
                     <IconButton onClick={() => handleEdit(item)} title="Edit">
                       <Edit2 size={18} />
                     </IconButton>

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, Save, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Upload, Image as ImageIcon, Download } from 'lucide-react';
+import { downloadImage } from '../utils/downloadHelper';
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -148,6 +149,12 @@ const ActionButton = styled.button`
     background: #4CAF50;
     color: white;
     &:hover { background: #45a049; }
+  `}
+  
+  ${props => props.$variant === 'download' && `
+    background: #2563eb;
+    color: white;
+    &:hover { background: #1d4ed8; }
   `}
   
   ${props => props.$variant === 'delete' && `
@@ -525,6 +532,11 @@ const AdminEventsPage = () => {
                 <p>{event.description}</p>
               </EventInfo>
               <Actions>
+                {event.posterUrl && (
+                  <ActionButton $variant="download" onClick={() => downloadImage(event.posterUrl, `event_${event.name}`)}>
+                    <Download size={16} />
+                  </ActionButton>
+                )}
                 <ActionButton $variant="edit" onClick={() => handleEdit(event)}>
                   <Edit2 size={16} />
                   Edit

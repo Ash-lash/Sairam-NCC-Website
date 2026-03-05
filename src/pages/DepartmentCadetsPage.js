@@ -7,7 +7,7 @@ import { GraduationCap, ArrowLeft, Users, Search, Download, GripVertical, Edit, 
 import { db } from '../firebase';
 import SEO from '../components/common/SEO';
 import CadetDetailModal from '../components/ui/CadetDetailModal';
-import { getFullRank } from '../rankStructure';
+import { getFullRank, armyRankOrder, navyRankOrder, airForceRankOrder } from '../rankStructure';
 import { useAuth } from '../contexts/AuthContext';
 import * as XLSX from 'xlsx';
 import {
@@ -29,6 +29,7 @@ import { CSS } from '@dnd-kit/utilities';
 import AdminCadetEditor from '../components/admin/AdminCadetEditor';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
 import OptimizedImage from '../components/common/OptimizedImage';
+import { downloadImage } from '../utils/downloadHelper';
 
 
 const PageContainer = styled.div`
@@ -323,20 +324,23 @@ const AdminActions = styled.div`
 `;
 
 const ActionButton = styled(motion.button)`
-  background: white;
+  background: ${props => props.$variant === 'download' ? '#2563eb' : 'white'};
+  color: ${props => props.$variant === 'download' ? 'white' : '#1e293b'};
   border: none;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #1e293b;
   cursor: pointer;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   border: 1px solid #eee;
   
-  &:hover { background: #f8fafc; color: #3b82f6; }
+  &:hover { 
+    background: ${props => props.$variant === 'download' ? '#1d4ed8' : '#f8fafc'};
+    color: ${props => props.$variant === 'download' ? 'white' : '#3b82f6'};
+  }
 `;
 
 const DragHandle = styled.div`
@@ -384,6 +388,22 @@ const SortableCadetCard = ({ cadet, isAdmin, onCadetClick, onAdminEdit }) => {
       {isAdmin && (
         <>
           <AdminActions>
+            <ActionButton
+              $variant="download"
+              onPointerDown={e => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                const photoUrl = cadet.photoURL || cadet.photoUrl || cadet.imageUrl || cadet.image || cadet.profileUrl;
+                if (photoUrl) downloadImage(photoUrl, `cadet_${cadet.Name || cadet.name}`);
+              }}
+              title="Download Photo"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              style={{ width: 'auto', padding: '0 10px', background: '#2563eb', color: 'white' }}
+            >
+              <Download size={16} />
+              <span style={{ fontSize: '0.75rem', fontWeight: '800', marginLeft: '4px' }}>Download</span>
+            </ActionButton>
             <ActionButton
               onPointerDown={e => e.stopPropagation()}
               onClick={(e) => { e.stopPropagation(); onAdminEdit(cadet); }}
@@ -567,10 +587,12 @@ const DepartmentCadetsPage = () => {
         ...c,
         seniority: getCadetStatus(c.Batch)
       })).sort((a, b) => {
+        // 1. Seniority Level
         if (a.seniority.order !== b.seniority.order) {
           return a.seniority.order - b.seniority.order;
         }
-        // Manual 'order' field is the primary sort within seniority
+
+        // 2. Manual 'order' field
         if (a.order !== undefined && b.order !== undefined) {
           if (a.order !== b.order) return a.order - b.order;
         } else if (a.order !== undefined) {
@@ -579,14 +601,36 @@ const DepartmentCadetsPage = () => {
           return 1;
         }
 
+        // 3. Rank Order
+        const getRankWeight = (cadet) => {
+          const rank = cadet.rank || 'Unranked';
+          const wing = (cadet.Wing || '').toLowerCase();
+          let list = [];
+          if (wing.includes('army')) list = armyRankOrder;
+          else if (wing.includes('navy')) list = navyRankOrder;
+          else if (wing.includes('air')) list = airForceRankOrder;
+
+          const index = list.indexOf(rank);
+          return index === -1 ? 999 : index;
+        };
+
+        const rankA = getRankWeight(a);
+        const rankB = getRankWeight(b);
+        if (rankA !== rankB) return rankA - rankB;
+
+        // 4. Batch Year
         const yearA = (a.Batch || '').toString().match(/\d{4}/);
         const yearB = (b.Batch || '').toString().match(/\d{4}/);
         const startA = yearA ? parseInt(yearA[0]) : 0;
         const startB = yearB ? parseInt(yearB[0]) : 0;
         if (startA !== startB) return startB - startA;
+
+        // 5. Wing Order
         const orderA = wingOrder[a.Wing] || 99;
         const orderB = wingOrder[b.Wing] || 99;
         if (orderA !== orderB) return orderA - orderB;
+
+        // 6. Name
         return (a.Name || a.name || '').localeCompare(b.Name || b.name || '');
       });
 

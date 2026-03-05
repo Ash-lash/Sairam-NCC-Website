@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { collection, getDocs, doc, addDoc, deleteDoc, updateDoc, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Plus, Trash2, X, ChevronLeft, Home, Zap, ShieldCheck, Edit2 } from 'lucide-react';
+import { Plus, Trash2, X, ChevronLeft, Home, Zap, ShieldCheck, Edit2, Download } from 'lucide-react';
 import { uploadFile } from '../utils/uploadHelper';
 import SEO from '../components/common/SEO';
+import { downloadImage } from '../utils/downloadHelper';
 
 const float = keyframes`
   0% { transform: translateY(0px); }
@@ -128,6 +129,15 @@ const EditButton = styled.button`
   cursor: pointer; transition: all 0.2s;
   margin-right: 0.5rem;
   &:hover { background: #dbeafe; }
+`;
+
+const DownloadButton = styled.button`
+  background: #f0fdf4; color: #16a34a; border: none;
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s;
+  margin-right: 0.5rem;
+  &:hover { background: #dcfce7; }
 `;
 
 const BatchPosterPreview = styled.div`
@@ -421,6 +431,12 @@ const AdminNccTeamsPage = () => {
                                 <CardHeader>
                                     <h3 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0 }}>{batch.name}</h3>
                                     <div style={{ display: 'flex' }}>
+                                        {batch.posterURL && (
+                                            <DownloadButton onClick={(e) => {
+                                                e.stopPropagation();
+                                                downloadImage(batch.posterURL, `poster_${batch.name}`);
+                                            }}><Download size={16} /></DownloadButton>
+                                        )}
                                         <EditButton onClick={(e) => handleEditBatch(e, batch)}><Edit2 size={16} /></EditButton>
                                         <DeleteButton onClick={(e) => handleDeleteBatch(e, batch.id)}><Trash2 size={16} /></DeleteButton>
                                     </div>

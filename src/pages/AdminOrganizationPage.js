@@ -3,7 +3,8 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { collection, doc, getDocs, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Save, Layout, BookOpen, User2, Globe, Command, Upload } from 'lucide-react';
+import { Save, Layout, BookOpen, User2, Globe, Command, Upload, Download } from 'lucide-react';
+import { downloadImage } from '../utils/downloadHelper';
 import { uploadFileToFirebaseStorage as uploadFile } from '../utils/firebaseStorage';
 
 const PageContainer = styled.div`
@@ -472,6 +473,15 @@ const AdminOrganizationPage = () => {
                                 disabled={saving}
                               />
                             </UploadButton>
+                            {personnel[id]?.imageUrl && (
+                              <UploadButton
+                                onClick={() => downloadImage(personnel[id].imageUrl, `org_${id}`)}
+                                title="Download Photo"
+                                style={{ color: '#2563eb' }}
+                              >
+                                <Download size={18} />
+                              </UploadButton>
+                            )}
                           </InputRow>
                           <p className="hint">Directly upload below OR paste a direct image link (ends in .jpg/.png)</p>
                         </FormGroup>

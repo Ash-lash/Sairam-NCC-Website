@@ -34,6 +34,7 @@ import SEO from '../components/common/SEO';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
 import { getWingCandidates, toCanonicalWing } from '../utils/wingUtils';
 import * as XLSX from 'xlsx';
+import { downloadImage } from '../utils/downloadHelper';
 
 
 // --- STYLES (Unchanged) ---
@@ -505,6 +506,33 @@ const AdminEditButton = styled.button`
   }
 `;
 
+const AdminDownloadButton = styled.button`
+  position: absolute;
+  top: 8px;
+  right: 52px; /* Next to Edit button */
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 0 12px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  z-index: 10;
+  font-weight: 700;
+  font-size: 0.75rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #1d4ed8;
+    transform: scale(1.05);
+  }
+  &:active { transform: scale(0.95); }
+`;
+
 const DragHandle = styled.div`
   position: absolute;
   top: 8px;
@@ -748,6 +776,14 @@ const SortableCadetCard = ({ cadet, isAdmin, onCadetClick, onAdminEdit, useRound
           <DragHandle {...attributes} {...listeners}>
             <GripVertical size={16} />
           </DragHandle>
+          <AdminDownloadButton onClick={(e) => {
+            e.stopPropagation();
+            const photoUrl = cadet.photoURL || cadet.photoUrl || cadet.imageUrl || cadet.image || cadet.profileUrl;
+            if (photoUrl) downloadImage(photoUrl, `cadet_${cadet.Name || cadet.name}`);
+          }}>
+            <Download size={14} />
+            <span>Download</span>
+          </AdminDownloadButton>
           <AdminEditButton onClick={() => onAdminEdit(cadet)}>
             <Edit size={16} />
           </AdminEditButton>
@@ -801,8 +837,10 @@ const BatchDetails = ({ wing, cadetsByRank, loading, onCadetClick, onAdminEdit, 
   );
 
   const getRankOrder = () => {
+    if (wing === 'army' || wing === 'army-bn' || wing === 'army-med') {
+      return armyRankOrder;
+    }
     switch (wing) {
-      case 'army': return armyRankOrder;
       case 'navy': return navyRankOrder;
       case 'airforce': return airForceRankOrder;
       default: return [];

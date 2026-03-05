@@ -5,7 +5,8 @@ import { collection, doc, setDoc, onSnapshot, deleteDoc, query, orderBy, addDoc 
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
 import { uploadFileToFirebaseStorage as uploadFile } from '../utils/firebaseStorage';
-import { Save, Upload, User, Quote, Loader2, Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
+import { Save, Upload, User, Quote, Loader2, Plus, Trash2, ArrowUp, ArrowDown, Download } from 'lucide-react';
+import { downloadImage } from '../utils/downloadHelper';
 import ImageCropper from '../components/admin/ImageCropper';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
 
@@ -436,6 +437,11 @@ const AdminLeadershipPage = () => {
                     <IconButton onClick={() => handleMove(index, 'down')} disabled={index === leaders.length - 1}>
                       <ArrowDown size={16} />
                     </IconButton>
+                    {leader.imageUrl && (
+                      <IconButton onClick={() => downloadImage(leader.imageUrl, `leader_${leader.name}`)} title="Download Photo">
+                        <Download size={16} />
+                      </IconButton>
+                    )}
                     <IconButton $danger onClick={() => handleDelete(leader.id)}>
                       <Trash2 size={16} />
                     </IconButton>

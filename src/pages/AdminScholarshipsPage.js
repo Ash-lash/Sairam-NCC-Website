@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, Save, X, Upload, Image as ImageIcon, FileText, User, Users, UserPlus, XCircle, Award } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Upload, Image as ImageIcon, FileText, User, Users, UserPlus, XCircle, Award, Download } from 'lucide-react';
 import { collection, getDocs, doc, addDoc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { uploadFileToFirebaseStorage as uploadFile } from '../utils/firebaseStorage';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
+import { downloadImage } from '../utils/downloadHelper';
 import SEO from '../components/common/SEO';
 
 const PageContainer = styled.div`
@@ -173,6 +174,12 @@ const ActionButton = styled.button`
   gap: 0.5rem;
   font-weight: 600;
   transition: all 0.3s ease;
+  
+  ${props => props.$variant === 'download' && `
+    background: #2196F3;
+    color: white;
+    &:hover { background: #1976D2; }
+  `}
   
   ${props => props.$variant === 'edit' && `
     background: #4CAF50;
@@ -609,6 +616,16 @@ const AdminScholarshipsPage = () => {
                 {scholarship.description}
               </div>
               <Actions>
+                {scholarship.posterUrl && (
+                  <ActionButton $variant="download" onClick={() => downloadImage(scholarship.posterUrl, `scholarship_${scholarship.name}`)}>
+                    <Download size={16} />
+                  </ActionButton>
+                )}
+                {scholarship.reportUrl && (
+                  <ActionButton $variant="download" style={{ background: '#4CAF50' }} onClick={() => downloadImage(scholarship.reportUrl, `report_${scholarship.name}.pdf`)}>
+                    <FileText size={16} />
+                  </ActionButton>
+                )}
                 <ActionButton $variant="edit" onClick={() => handleEdit(scholarship)}>
                   <Edit2 size={16} /> Edit
                 </ActionButton>

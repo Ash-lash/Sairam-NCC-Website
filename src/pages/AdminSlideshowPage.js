@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { ImagePlus, Trash2, Save, Edit3, X, Check, RefreshCw } from 'lucide-react';
+import { ImagePlus, Trash2, Save, Edit3, X, Check, RefreshCw, Download } from 'lucide-react';
 import { collection, getDocs, orderBy, query, doc, writeBatch, addDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { uploadFileToFirebaseStorage } from '../utils/firebaseStorage';
@@ -11,6 +11,7 @@ import { arrayMove, SortableContext, useSortable, rectSortingStrategy } from '@d
 import { CSS } from '@dnd-kit/utilities';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
+import { downloadImage } from '../utils/downloadHelper';
 
 import SEO from '../components/common/SEO'; // Import SEO component
 import SystemMigrationModal from '../components/admin/SystemMigrationModal';
@@ -60,26 +61,36 @@ const ActionButtonsContainer = styled.div`
   right: 8px;
   display: flex;
   gap: 8px;
-  z-index: 10;
+  z-index: 100;
+  pointer-events: auto;
 `;
 
 const CircleButton = styled.button`
-  background: ${props => props.$variant === 'delete' ? 'rgba(220, 38, 38, 0.9)' : 'rgba(255, 255, 255, 0.9)'};
-  color: ${props => props.$variant === 'delete' ? 'white' : '#1A2B4C'};
+  background: ${props => {
+        if (props.$variant === 'delete') return '#dc2626';
+        if (props.$variant === 'download') return '#2563eb';
+        return '#ffffff';
+    }};
+  color: ${props => (props.$variant === 'delete' || props.$variant === 'download') ? '#ffffff' : '#1A2B4C'};
   border: none;
   border-radius: 50%;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  z-index: 101;
   
   &:hover {
     transform: scale(1.1);
-    background: ${props => props.$variant === 'delete' ? '#ef4444' : 'white'};
+    background: ${props => {
+        if (props.$variant === 'delete') return '#ef4444';
+        if (props.$variant === 'download') return '#1d4ed8';
+        return '#f1f5f9';
+    }};
   }
 `;
 
@@ -299,6 +310,19 @@ const SortableImage = ({ image, index, onDelete, onEdit }) => {
             </div>
             <ActionButtonsContainer>
                 <CircleButton
+                    $variant="download"
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        downloadImage(image.imageUrl, `slideshow_${image.id}`);
+                    }}
+                    title="Download Image"
+                    style={{ width: 'auto', padding: '0 12px', borderRadius: '20px' }}
+                >
+                    <Download size={14} />
+                    <span style={{ marginLeft: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>Download</span>
+                </CircleButton>
+                <CircleButton
                     onPointerDown={e => e.stopPropagation()}
                     onClick={(e) => {
                         e.stopPropagation();
@@ -482,7 +506,9 @@ const AdminSlideshowPage = () => {
                 <WingSelector id="collection-select" value={targetCollection} onChange={(e) => setTargetCollection(e.target.value)}>
                     <option value="slideshowImages">General (Homepage)</option>
                     <option value="aboutNCCSlideshowImages">About NCC</option>
-                    <option value="armySlideshowImages">Army Wing</option>
+                    <option value="armySlideshowImages">Army Wing (BTY)</option>
+                    <option value="armyBNSlideshowImages">Army Battalion (BN)</option>
+                    <option value="armyMEDSlideshowImages">Army Medical (MED)</option>
                     <option value="navySlideshowImages">Navy Wing</option>
                     <option value="airSlideshowImages">Air Wing</option>
                 </WingSelector>

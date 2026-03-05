@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { Plus, Edit2, Trash2, Save, X, Upload, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Upload, Search, Download } from 'lucide-react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { uploadFileToFirebaseStorage as uploadFile } from '../utils/firebaseStorage';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
+import { downloadImage } from '../utils/downloadHelper';
 import SEO from '../components/common/SEO';
 
 const PageContainer = styled.div`
@@ -110,6 +111,18 @@ const ActionButton = styled.button`
   gap: 0.5rem;
   font-weight: 600;
   transition: all 0.3s ease;
+  
+  ${props => props.$variant === 'download' && `
+    background: #2563eb;
+    color: white;
+    border-radius: 20px;
+    padding: 0.5rem 1.2rem;
+    &:hover { 
+      background: #1d4ed8;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(37,99,235,0.2);
+    }
+  `}
   
   ${props => props.$variant === 'edit' && `
     background: #4CAF50;
@@ -603,6 +616,12 @@ const AdminAlumniPage = () => {
                 {alum.department && <p style={{ color: '#FFBF00', fontSize: '0.9rem', fontWeight: 'bold' }}>{alum.department}</p>}
               </AlumniInfo>
               <Actions>
+                {alum.photoUrl && (
+                  <ActionButton $variant="download" onClick={() => downloadImage(alum.photoUrl, `alumni_${alum.name}`)}>
+                    <Download size={16} />
+                    Download
+                  </ActionButton>
+                )}
                 <ActionButton $variant="edit" onClick={() => handleEdit(alum)}>
                   <Edit2 size={16} />
                   Edit

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import SEO from '../components/common/SEO';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
 import OptimizedImage from '../components/common/OptimizedImage';
+
 
 // ─── NCC Colors ───
 const NCC = {
@@ -235,6 +236,65 @@ const SkeletonCard = styled.div`
   .w70{width:70%} .w50{width:50%} .w40{width:40%}
 `;
 
+const Particles = () => {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
+    let particles = [];
+
+    const createParticles = () => {
+      particles = [];
+      for (let i = 0; i < 60; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          size: Math.random() * 2 + 0.5,
+          speed: Math.random() * 0.4 + 0.1,
+          opacity: Math.random() * 0.4 + 0.2
+        });
+      }
+    };
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        p.y += p.speed;
+        if (p.y > canvas.height) {
+          p.y = -10;
+          p.x = Math.random() * canvas.width;
+        }
+      });
+      animationFrameId = requestAnimationFrame(draw);
+    };
+
+    const handleResize = () => {
+      if (canvas.parentElement) {
+        canvas.width = canvas.parentElement.offsetWidth;
+        canvas.height = canvas.parentElement.offsetHeight;
+        createParticles();
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    draw();
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1 }} />;
+};
+
 const getInitials = (name) => {
   if (!name) return '?';
   const p = name.trim().split(' ');
@@ -299,6 +359,7 @@ const AlumniPage = () => {
       <SEO title="Alumni Network" description="Connect with distinguished NCC alumni from Sairam Engineering College." />
 
       <HeroSection>
+        <Particles />
         <HeroContent>
           <HeroBadge initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
             <GraduationCap size={16} /> Alumni Network

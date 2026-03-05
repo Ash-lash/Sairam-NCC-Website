@@ -3,7 +3,8 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { collection, getDocs, doc, setDoc, query, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Save, User2, Trash, Upload, Plus, X, Crop as CropIcon, CheckCircle2 } from 'lucide-react';
+import { Save, User2, Trash, Upload, Plus, X, Crop as CropIcon, CheckCircle2, Download } from 'lucide-react';
+import { downloadImage } from '../utils/downloadHelper';
 import { uploadFile } from '../utils/uploadHelper';
 import SEO from '../components/common/SEO';
 import Cropper from 'react-easy-crop';
@@ -242,9 +243,17 @@ const AdminMagicMembersPage = () => {
             const photo = fileInputs[role] ? URL.createObjectURL(fileInputs[role]) : m.photoURL;
             return (
               <Card key={role}>
-                <CardTop><h3>{role}</h3><Trash size={16} color="#ef4444" cursor="pointer" onClick={async () => {
-                  if (m.id && window.confirm("Clear?")) { await deleteDoc(doc(db, 'magicMembers', m.id)); fetchData(); }
-                }} /></CardTop>
+                <CardTop>
+                  <h3>{role}</h3>
+                  <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
+                    {m.photoURL && (
+                      <Download size={16} color="#3b82f6" cursor="pointer" onClick={() => downloadImage(m.photoURL, `magic_${role}_${selectedBatch}`)} />
+                    )}
+                    <Trash size={16} color="#ef4444" cursor="pointer" onClick={async () => {
+                      if (m.id && window.confirm("Clear?")) { await deleteDoc(doc(db, 'magicMembers', m.id)); fetchData(); }
+                    }} />
+                  </div>
+                </CardTop>
                 <CardBody>
                   <PhotoFrame onClick={() => document.getElementById(`f-${role}`).click()}>
                     {photo ? <img src={photo} alt="" loading="lazy" /> : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><User2 size={50} color="#cbd5e1" /></div>}

@@ -2,7 +2,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
-import { X, ExternalLink } from 'lucide-react';
+import { X, ExternalLink, Download } from 'lucide-react';
+import { downloadImage } from '../../utils/downloadHelper';
 import { getFullRank } from '../../rankStructure';
 
 // --- STYLES (No Change) ---
@@ -77,14 +78,22 @@ const CadetDetailModal = ({ isOpen, onClose, cadet }) => {
               <ModalTitle>{cadet.Name}'s Dossier</ModalTitle>
               <HeaderActions>
                 {pdfUrlToDisplay && (
-                  <ActionButton
-                    href={pdfUrlToDisplay}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Open in new tab"
-                  >
-                    <ExternalLink size={20} />
-                  </ActionButton>
+                  <>
+                    <ActionButton
+                      onClick={() => downloadImage(pdfUrlToDisplay, `dossier_${cadet.Name}.pdf`)}
+                      title="Download Dossier"
+                    >
+                      <Download size={20} />
+                    </ActionButton>
+                    <ActionButton
+                      href={pdfUrlToDisplay}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Open in new tab"
+                    >
+                      <ExternalLink size={20} />
+                    </ActionButton>
+                  </>
                 )}
                 <CloseButton onClick={onClose}><X size={24} /></CloseButton>
               </HeaderActions>

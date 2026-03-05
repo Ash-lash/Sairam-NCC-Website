@@ -6,13 +6,14 @@ import { db } from '../firebase';
 import {
   ImagePlus, Trash2, Plus, ArrowLeft, Upload, Grid as GridIcon,
   FolderPlus, ImageIcon, Settings2, CheckCircle2,
-  Layers
+  Layers, Download
 } from 'lucide-react';
 import { uploadFileToFirebaseStorage } from '../utils/firebaseStorage';
 import SEO from '../components/common/SEO';
 import { motion, AnimatePresence } from 'framer-motion';
 import CounterLoader from '../components/common/CounterLoader';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
+import { downloadImage } from '../utils/downloadHelper';
 
 // --- DASHBOARD STYLES ---
 
@@ -258,6 +259,25 @@ const DeleteFab = styled.button`
   &:hover { background: #ef4444; color: white; }
 `;
 
+const DownloadFab = styled.button`
+  position: absolute;
+  top: 12px;
+  right: 54px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: white;
+  color: #3b82f6;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  
+  &:hover { background: #3b82f6; color: white; }
+`;
+
 // Photos
 const PhotoGrid = styled.div`
   display: grid;
@@ -280,16 +300,22 @@ const PhotoItem = styled.div`
 
 const PhotoOverlayBtn = styled.button`
   position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.6);
+  color: white;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
   opacity: 0;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all 0.2s;
+  
+  &:hover { background: ${props => props.$variant === 'delete' ? '#ef4444' : '#3b82f6'}; }
 `;
 
 const AdminGalleryPage = () => {
@@ -653,6 +679,12 @@ const AdminGalleryPage = () => {
                           alt={album.name}
                           loading="lazy"
                         />
+                        <DownloadFab onClick={(e) => {
+                          e.stopPropagation();
+                          downloadImage(album.coverImage, `album_cover_${album.name}`);
+                        }}>
+                          <Download size={18} />
+                        </DownloadFab>
                         <DeleteFab onClick={(e) => handleDeleteAlbum(e, album.id)}>
                           <Trash2 size={18} />
                         </DeleteFab>
@@ -682,9 +714,20 @@ const AdminGalleryPage = () => {
                         alt="gallery"
                         loading="lazy"
                       />
-                      <PhotoOverlayBtn onClick={() => handleDeletePhoto(photo.id)}>
-                        <Trash2 size={24} />
-                        <span style={{ marginLeft: '8px' }}>Remove</span>
+                      <PhotoOverlayBtn
+                        onClick={() => downloadImage(photo.imageUrl, `gallery_${photo.id}`)}
+                        style={{ right: '48px', opacity: 1 }}
+                        title="Download"
+                      >
+                        <Download size={18} />
+                      </PhotoOverlayBtn>
+                      <PhotoOverlayBtn
+                        $variant="delete"
+                        onClick={() => handleDeletePhoto(photo.id)}
+                        style={{ opacity: 1 }}
+                        title="Delete"
+                      >
+                        <Trash2 size={18} />
                       </PhotoOverlayBtn>
                     </PhotoItem>
                   ))}
