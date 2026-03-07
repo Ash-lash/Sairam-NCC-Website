@@ -280,8 +280,15 @@ const AdminDownloadsPage = () => {
 
         setUploading(true);
         try {
-            const fileRef = ref(storage, `downloads/${Date.now()}_${formData.file.name}`);
-            await uploadBytes(fileRef, formData.file);
+            const fileExt = formData.file.name.split('.').pop();
+            const sanitizedTitle = formData.title.replace(/[^a-z0-9]/gi, '_');
+            const fileNameToSave = `${sanitizedTitle}.${fileExt}`;
+
+            const fileRef = ref(storage, `downloads/${Date.now()}_${fileNameToSave}`);
+            await uploadBytes(fileRef, formData.file, {
+                contentType: formData.file.type || 'application/octet-stream',
+                contentDisposition: `attachment; filename="${fileNameToSave}"`
+            });
             const url = await getDownloadURL(fileRef);
 
             await addDoc(collection(db, 'downloads'), {

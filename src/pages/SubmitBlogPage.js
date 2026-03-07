@@ -231,7 +231,7 @@ const Particles = () => {
 };
 
 const SubmitBlogPage = () => {
-    const { user } = useAuth();
+    const { user, loading } = useAuth();
     const navigate = useNavigate();
 
     const [formData, setFormData] = useState({
@@ -247,6 +247,42 @@ const SubmitBlogPage = () => {
     const [authorPreview, setAuthorPreview] = useState(user?.photoURL || null);
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
+
+    // Sync author name if user becomes available
+    useEffect(() => {
+        if (user && !formData.authorName) {
+            setFormData(prev => ({ ...prev, authorName: user.displayName || '' }));
+            setAuthorPreview(user.photoURL || null);
+        }
+    }, [user]);
+
+    if (loading) {
+        return (
+            <PageContainer style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white' }}>
+                <div className="skeleton-spinner" />
+            </PageContainer>
+        );
+    }
+
+    if (!user) {
+        return (
+            <PageContainer style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white' }}>
+                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} style={{ textAlign: 'center', maxWidth: '500px', padding: '2rem' }}>
+                    <div style={{ background: '#fef2f2', width: '100px', height: '100px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 2rem' }}>
+                        <User size={50} color="#ef4444" />
+                    </div>
+                    <h1 style={{ fontSize: '2.5rem', fontWeight: 950, color: '#1a2b4c', marginBottom: '1rem' }}>Identity Required.</h1>
+                    <p style={{ fontSize: '1.1rem', color: '#64748b', marginBottom: '3rem', lineHeight: 1.6 }}>
+                        To maintain the integrity of our editorial board and ensure your legacy is properly attributed, you must be logged in to submit a story.
+                    </p>
+                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                        <ActionButton $primary onClick={() => navigate('/alumni-login')} style={{ width: 'auto', padding: '1rem 2rem' }}>Login to Continue</ActionButton>
+                        <ActionButton onClick={() => navigate('/blog')} style={{ width: 'auto', padding: '1rem 2rem' }}>Return to Feed</ActionButton>
+                    </div>
+                </motion.div>
+            </PageContainer>
+        );
+    }
 
     const handleFileChange = (e, field) => {
         const file = e.target.files[0];
@@ -292,8 +328,12 @@ const SubmitBlogPage = () => {
             });
             setSuccess(true);
         } catch (e) {
-            console.error("Submission error:", e);
-            alert("Failed to submit journal. Please try again.");
+            console.error("Submission error details:", e);
+            if (e.code === 'storage/unauthorized') {
+                alert("Permission Denied (403): You don't have permission to upload images. Please check if you are logged in or contact an administrator.");
+            } else {
+                alert(`Failed to submit journal: ${e.message || "Please try again."}`);
+            }
         } finally {
             setSubmitting(false);
         }

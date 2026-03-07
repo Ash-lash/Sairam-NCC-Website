@@ -33,8 +33,9 @@ export const uploadFileToFirebaseStorage = async (file, folderPath) => {
     const fileRef = ref(storage, fullPath);
 
     await uploadBytes(fileRef, fileToUpload, {
-        contentType: fileToUpload.type || undefined,
+        contentType: fileToUpload.type || 'application/octet-stream',
         cacheControl: 'public, max-age=31536000, immutable',
+        contentDisposition: `inline; filename="${safeName}"`
     });
 
     return getDownloadURL(fileRef);

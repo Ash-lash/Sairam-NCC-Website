@@ -125,9 +125,21 @@ const SystemMigrationModal = ({ isOpen, onClose }) => {
 
                 const response = await fetch(cleanUrl);
                 const blob = await response.blob();
-                const fileName = `migration/${path}_${Date.now()}`;
+
+                // Smart extension detection
+                let ext = 'bin';
+                if (blob.type.includes('pdf')) ext = 'pdf';
+                else if (blob.type.includes('image/jpeg')) ext = 'jpg';
+                else if (blob.type.includes('image/png')) ext = 'png';
+                else if (blob.type.includes('image/')) ext = 'jpg';
+                else if (cleanUrl.toLowerCase().split('?')[0].endsWith('.pdf')) ext = 'pdf';
+
+                const fileName = `migration/${path}_${Date.now()}.${ext}`;
                 const storageRef = ref(storage, fileName);
-                await uploadBytes(storageRef, blob);
+                await uploadBytes(storageRef, blob, {
+                    contentType: blob.type || 'application/octet-stream',
+                    contentDisposition: `inline; filename="${fileName.split('/').pop()}"`
+                });
                 return await getDownloadURL(storageRef);
             } catch (e) {
                 console.error(`Failed to migrate ${url}:`, e);

@@ -37,7 +37,10 @@ export const uploadFile = async (file, setMessage = () => { }) => {
         const snapshot = await uploadBytes(
             storageRef,
             file,
-            file.type ? { contentType: file.type } : undefined
+            {
+                contentType: file.type || 'application/octet-stream',
+                contentDisposition: `inline; filename="${fileName}"`
+            }
         );
         const downloadURL = await getDownloadURL(snapshot.ref);
         console.log(`${typeLabel} uploaded successfully:`, downloadURL);
