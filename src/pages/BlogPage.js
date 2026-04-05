@@ -21,6 +21,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import nccLogo from '../assets/ncc-logo.svg';
+import OptimizedImage from '../components/common/OptimizedImage';
 import SEO from '../components/common/SEO';
 
 const PageContainer = styled.div`
@@ -405,14 +406,28 @@ const BlogPage = () => {
                 onClick={() => handleEntryClick(blog.id)}
               >
                 {blog.imageUrl && (
-                  <div style={{ width: '100%', borderBottom: '1px solid #f1f5f9' }}>
-                    <img src={blog.imageUrl} alt="Cover" style={{ width: '100%', height: 'auto', maxHeight: '500px', objectFit: 'cover', display: 'block' }} />
+                  <div style={{ width: '100%', borderBottom: '1px solid #f1f5f9', height: '300px' }}>
+                    <OptimizedImage
+                      src={blog.imageUrl}
+                      alt={blog.title}
+                      width={600}
+                      quality={85}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                   </div>
                 )}
                 <EntryContent>
                   <EntryHeader>
                     <div className="author-group">
-                      <img src={blog.authorPhotoUrl || 'https://api.dicebear.com/7.x/initials/svg?seed=' + blog.authorName} alt="Author" />
+                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden' }}>
+                        <OptimizedImage
+                          src={blog.authorPhotoUrl || 'https://api.dicebear.com/7.x/initials/svg?seed=' + blog.authorName}
+                          alt={blog.authorName}
+                          width={40}
+                          quality={60}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
+                      </div>
                       <div className="text">
                         <div className="name">By {blog.authorName}</div>
                         <div className="date">{new Date(blog.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>

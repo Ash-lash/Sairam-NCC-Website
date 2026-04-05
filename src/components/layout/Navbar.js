@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
-import { ChevronDown, Menu as MenuIcon, X as XIcon, Phone, Mail, ChevronRight, Info, Users, Award, Calendar, Image, FileText, UserPlus, LogIn, LayoutDashboard, Settings, PenTool } from "lucide-react";
+import { ChevronDown, Menu as MenuIcon, X as XIcon, Phone, Mail, ChevronRight, Info, Users, Award, Calendar, Image, FileText, UserPlus, LayoutDashboard, Settings, PenTool, FileSpreadsheet } from "lucide-react";
 import { useAuth } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { collection, getDocs } from 'firebase/firestore';
@@ -13,9 +13,8 @@ import armyInsignia from '../../assets/army-logo.png';
 import navyInsignia from '../../assets/navy-logo.png';
 import airforceInsignia from '../../assets/airforce-logo.png';
 import FuturisticLogout from '../common/FuturisticLogout';
+import OptimizedImage from '../common/OptimizedImage';
 
-const NAV_BG = "rgba(255, 255, 255, 0.85)";
-const NAV_BORDER = "rgba(0, 0, 0, 0.08)";
 const GOLD = "#FFBF00";
 const PRIMARY_TEXT = "#1A2B4C";
 const NAV_HEIGHT = "110px";
@@ -757,15 +756,15 @@ const Navbar = () => {
           <LeftSection>
             <NavBranding to="/" onClick={handleHomeClick}>
               <NavLogosGroup>
-                <MainBrandingLogo src={sairamLogo} alt="Sairam College Logo" loading="lazy" />
-                <NccBrandingLogo src={nccCrest} alt="NCC Crest" loading="lazy" />
+                <OptimizedImage src={sairamLogo} alt="Sairam College Logo" width={100} style={{ height: '85px', objectFit: 'contain' }} />
+                <OptimizedImage src={nccCrest} alt="NCC Crest" width={100} style={{ height: '80px', objectFit: 'contain' }} />
               </NavLogosGroup>
               <BrandingTextGroup>
                 <NccTitle>NATIONAL CADET CORPS</NccTitle>
                 <WingInsigniasRow>
-                  <NavInsignia src={armyInsignia} alt="Army" title="Army Wing" loading="lazy" />
-                  <NavInsignia src={navyInsignia} alt="Navy" title="Navy Wing" loading="lazy" />
-                  <NavInsignia src={airforceInsignia} alt="Air Force" title="Air Force Wing" loading="lazy" />
+                  <OptimizedImage src={armyInsignia} alt="Army" title="Army Wing" width={50} style={{ height: '24px', opacity: 0.6, filter: 'grayscale(1)' }} />
+                  <OptimizedImage src={navyInsignia} alt="Navy" title="Navy Wing" width={50} style={{ height: '24px', opacity: 0.6, filter: 'grayscale(1)' }} />
+                  <OptimizedImage src={airforceInsignia} alt="Air Force" title="Air Force Wing" width={50} style={{ height: '24px', opacity: 0.6, filter: 'grayscale(1)' }} />
                 </WingInsigniasRow>
                 <CollegeTagline>SRI SAIRAM ENGINEERING COLLEGE</CollegeTagline>
               </BrandingTextGroup>
@@ -937,6 +936,7 @@ const Navbar = () => {
                         <DropdownItem to="/admin/scholarships" icon={Award}>Scholarships</DropdownItem>
                         <DropdownItem to="/admin/blogs" icon={PenTool}>Blogs</DropdownItem>
                         <DropdownItem to="/admin/announcements" icon={FileText}>Updates</DropdownItem>
+                        <DropdownItem to="/admin/registrations" icon={FileSpreadsheet}>Registrations</DropdownItem>
                       </DropdownMenu>
                     )}
                   </MenuItem>
@@ -1056,6 +1056,7 @@ const Navbar = () => {
                         <Link to="/admin/scholarships">Scholarships</Link>
                         <Link to="/admin/blogs">Blogs</Link>
                         <Link to="/admin/announcements">Updates</Link>
+                        <Link to="/admin/registrations">Registrations</Link>
                       </MobileDropdownContent>
                     )}
                   </MobileMenuItem>

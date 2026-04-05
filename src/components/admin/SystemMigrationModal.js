@@ -109,11 +109,22 @@ const SystemMigrationModal = ({ isOpen, onClose }) => {
             { name: 'nccTeamBatches', fields: ['posterURL', 'posterURLs'] },
             { name: 'downloads', fields: ['fileUrl'] },
             { name: 'leadership', fields: ['imageUrl'] },
-            { name: 'announcements', fields: ['imageUrl'] }
+            { name: 'announcements', fields: ['imageUrl'] },
+            { name: 'blogs', fields: ['imageUrl', 'authorPhotoUrl'] },
+            { name: 'scholarships', fields: ['posterUrl'] },
+            { name: 'wingReports', fields: ['pdfURL', 'photoURL'] }
         ];
 
         const migrateUrl = async (url, path) => {
-            if (!url || typeof url !== 'string' || !url.includes('supabase.co')) return url;
+            if (!url || typeof url !== 'string') return url;
+
+            const isSupabase = url.includes('supabase.co');
+            const isCloudinary = url.includes('cloudinary.com') || url.includes('dw5fqilzj');
+            const isFirebase = url.includes('firebasestorage.googleapis.com');
+            const currentBucket = 'ncc-sairam-website.firebasestorage.app';
+            const isWrongBucket = isFirebase && !url.includes(currentBucket);
+
+            if (!isSupabase && !isCloudinary && !isWrongBucket) return url;
 
             try {
                 // Remove wsrv.nl wrapper if present
@@ -228,15 +239,23 @@ const SystemMigrationModal = ({ isOpen, onClose }) => {
         }
     };
 
-    const updateAlumniPasswords = async () => {
-        const password = prompt("Please enter the NEW password for Alumni Admin accounts:");
-        if (!password || password.length < 6) {
-            alert("Invalid password.");
-            return;
+    const clearClientCache = () => {
+        if (!window.confirm("This will clear your local site data and reload the page. This can fix issues where you are seeing old/broken content. Continue?")) return;
+
+        localStorage.clear();
+        sessionStorage.clear();
+
+        // Try to clear Firestore persistence
+        try {
+            window.indexedDB.deleteDatabase("firestore/[DEFAULT]/ncc-sairam-website/main");
+        } catch (e) {
+            console.error("Failed to delete IndexedDB:", e);
         }
 
-        alert("Note: To update passwords for OTHER users without their current login, you would normally use a Firebase Admin script or Firebase Console. Since this is the browser client, this tool can only update passwords for the CURRENTLY logged-in users or if you have their current credentials. For mass updates, please use the Cloud functions or contact support.");
+        window.location.reload(true);
     };
+
+    const updateAlumniPasswords = async () => { };
 
     if (!isOpen) return null;
 
@@ -272,14 +291,17 @@ const SystemMigrationModal = ({ isOpen, onClose }) => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                                 <AlertTriangle size={32} color="#ef4444" />
                                 <div>
-                                    <h3 style={{ margin: 0 }}>Legacy Password Update</h3>
+                                    <h3 style={{ margin: 0 }}>System Repair & Cache Clear</h3>
                                     <p style={{ margin: '0.25rem 0 0', fontSize: '0.9rem', color: '#64748b' }}>
-                                        Update passwords for administrative conventions.
+                                        Fixes loading issues caused by old data stored in your browser.
                                     </p>
                                 </div>
                             </div>
-                            <div style={{ background: '#fffbeb', padding: '1rem', borderRadius: '8px', border: '1px solid #fef3c7', fontSize: '0.85rem', color: '#92400e' }}>
-                                Recommended: Use the <strong>Firebase Console</strong> to change passwords directly in the Auth tab for <strong>alumini@sairam.edu.in</strong> accounts.
+                            <ActionButton onClick={clearClientCache} $color="#ef4444">
+                                Clear Site Cache & Reload
+                            </ActionButton>
+                            <div style={{ background: '#fffbeb', padding: '1rem', borderRadius: '8px', border: '1px solid #fef3c7', fontSize: '0.85rem', color: '#92400e', marginTop: '1rem' }}>
+                                <strong>Important:</strong> If images are in Firebase but not showing, try this ⬆️ button first. It tells your browser to look for the new images instead of the old broken ones.
                             </div>
                         </ToolCard>
                     </Body>

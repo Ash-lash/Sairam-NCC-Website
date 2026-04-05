@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useTransform, useMotionValue, useSpring } from 'framer-motion';
 import styled from 'styled-components';
-import { ChevronDown, GraduationCap, Star, Users } from 'lucide-react';
+import { ChevronDown, GraduationCap, Star, Users, PieChart } from 'lucide-react';
 import AnnouncementsBoard from './AnnouncementsBoard';
 
 const ARMY_RED = '#D22B2B';
@@ -226,6 +226,14 @@ const HeroSection = () => {
           >
             <GraduationCap size={20} />
             Department Wise Cadet List
+          </FeatureButton>
+          <FeatureButton
+            whileHover={{ y: -5 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/strength-chart')}
+          >
+            <PieChart size={20} />
+            NCC CADETS STRENGTH CHART
           </FeatureButton>
           <FeatureButton
             whileHover={{ y: -5 }}

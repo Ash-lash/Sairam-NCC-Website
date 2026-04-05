@@ -202,7 +202,7 @@ const UploadSuccess = styled.div`
 
 // --- existing code ---
 
-const AdminCadetEditor = ({ isOpen, onClose, cadet, onComplete }) => {
+const AdminCadetEditor = ({ isOpen, onClose, cadet, onComplete, onDelete }) => {
   const [name, setName] = useState('');
   const [rank, setRank] = useState('');
   const [secID, setSecID] = useState('');
@@ -211,6 +211,7 @@ const AdminCadetEditor = ({ isOpen, onClose, cadet, onComplete }) => {
   const [regimentalNo, setRegimentalNo] = useState('');
   const [newPhotoFile, setNewPhotoFile] = useState(null);
   const [newPdfFile, setNewPdfFile] = useState(null);
+  const [batch, setBatch] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -226,6 +227,7 @@ const AdminCadetEditor = ({ isOpen, onClose, cadet, onComplete }) => {
       setDept(cadet.dept || '');
       setSection(cadet.section || '');
       setRegimentalNo(cadet.regimentalNo || '');
+      setBatch(cadet.Batch || '');
       setNewPhotoFile(null);
       setNewPdfFile(null);
       setMessage('');
@@ -286,9 +288,10 @@ const AdminCadetEditor = ({ isOpen, onClose, cadet, onComplete }) => {
     const hasDeptChanged = dept !== (cadet.dept || '');
     const hasSectionChanged = section !== (cadet.section || '');
     const hasRegimentalNoChanged = regimentalNo !== (cadet.regimentalNo || '');
+    const hasBatchChanged = batch !== (cadet.Batch || '');
 
     if (!hasPhotoChanged && !hasPdfChanged && !hasNameChanged && !hasRankChanged &&
-      !hasSecIDChanged && !hasDeptChanged && !hasSectionChanged && !hasRegimentalNoChanged) {
+      !hasSecIDChanged && !hasDeptChanged && !hasSectionChanged && !hasRegimentalNoChanged && !hasBatchChanged) {
       setMessage("No changes to save.");
       return;
     }
@@ -316,6 +319,7 @@ const AdminCadetEditor = ({ isOpen, onClose, cadet, onComplete }) => {
       if (hasDeptChanged) dataToUpdate.dept = dept;
       if (hasSectionChanged) dataToUpdate.section = section;
       if (hasRegimentalNoChanged) dataToUpdate.regimentalNo = regimentalNo;
+      if (hasBatchChanged) dataToUpdate.Batch = batch;
 
       if (Object.keys(dataToUpdate).length > 0) {
         const cadetRef = doc(db, 'cadets', cadet.id);
@@ -351,6 +355,7 @@ const AdminCadetEditor = ({ isOpen, onClose, cadet, onComplete }) => {
       await deleteDoc(cadetRef);
 
       setMessage('Cadet deleted successfully!');
+      if (onDelete) onDelete(cadet);
       onComplete();
       setTimeout(onClose, 1000);
     } catch (error) {
@@ -420,6 +425,11 @@ const AdminCadetEditor = ({ isOpen, onClose, cadet, onComplete }) => {
             <FormGroup>
               <Label>Regimental No</Label>
               <Input type="text" value={regimentalNo} onChange={(e) => setRegimentalNo(e.target.value)} />
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Batch (e.g. 2024-2027)</Label>
+              <Input type="text" value={batch} onChange={(e) => setBatch(e.target.value)} />
             </FormGroup>
 
             <Message>{message}</Message>

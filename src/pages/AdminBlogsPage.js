@@ -6,6 +6,8 @@ import {
     Search, ShieldCheck,
     Calendar, User, ExternalLink, Download
 } from 'lucide-react';
+import OptimizedImage from '../components/common/OptimizedImage';
+import SystemMigrationModal from '../components/admin/SystemMigrationModal';
 import { downloadImage } from '../utils/downloadHelper';
 import { collection, getDocs, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -36,17 +38,17 @@ const StatsGrid = styled.div`
   
   @media (max-width: 1024px) { grid-template-columns: 1fr 1fr; }
   @media (max-width: 600px) { grid-template-columns: 1fr; }
-`;
 
-const StatCard = styled.div`
-  background: white;
-  border: 1px solid #e2e8f0;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  .stat-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
   
-  .label { color: #64748b; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
-  .value { font-size: 1.75rem; font-weight: 800; color: #1a2b4c; }
+  .stat-card .label { color: #64748b; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
+  .stat-card .value { font-size: 1.75rem; font-weight: 800; color: #1a2b4c; }
 `;
 
 const ControlsBar = styled.div`
@@ -119,11 +121,24 @@ const ActionBtn = styled.button`
   &:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
 `;
 
+const StatusBadge = styled.span`
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: ${props => props.$status === 'approved' ? '#f0fdf4' : props.$status === 'declined' ? '#fef2f2' : '#fffbeb'};
+  color: ${props => props.$status === 'approved' ? '#16a34a' : props.$status === 'declined' ? '#ef4444' : '#d97706'};
+  border: 1px solid ${props => props.$status === 'approved' ? '#dcfce7' : props.$status === 'declined' ? '#fee2e2' : '#fef3c7'};
+`;
+
 const AdminBlogsPage = () => {
     const [blogs, setBlogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('pending');
     const [selectedBlog, setSelectedBlog] = useState(null);
+    const [isMigrationOpen, setIsMigrationOpen] = useState(false);
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -173,22 +188,22 @@ const AdminBlogsPage = () => {
                 </div>
 
                 <StatsGrid>
-                    <StatCard>
-                        <div className="label">Total Stories</div>
+                    <div className="stat-card">
+                        <div className="label">Total Submissions</div>
                         <div className="value">{blogs.length}</div>
-                    </StatCard>
-                    <StatCard>
-                        <div className="label">Pending Review</div>
-                        <div className="value" style={{ color: '#FFBF00' }}>{blogs.filter(b => b.status === 'pending').length}</div>
-                    </StatCard>
-                    <StatCard>
-                        <div className="label">Cumulative Views</div>
-                        <div className="value">{blogs.reduce((acc, b) => acc + (b.views || 0), 0)}</div>
-                    </StatCard>
-                    <StatCard>
-                        <div className="label">Approved Posts</div>
+                    </div>
+                    <div className="stat-card">
+                        <div className="label">Approved Journals</div>
                         <div className="value">{blogs.filter(b => b.status === 'approved').length}</div>
-                    </StatCard>
+                    </div>
+                    <div className="stat-card">
+                        <div className="label">Pending Review</div>
+                        <div className="value">{blogs.filter(b => b.status === 'pending').length}</div>
+                    </div>
+                    <div className="stat-card" style={{ background: '#1a2b4c', color: 'white', cursor: 'pointer' }} onClick={() => setIsMigrationOpen(true)}>
+                        <div className="label" style={{ color: '#FFBF00' }}>System Tools</div>
+                        <div className="value" style={{ fontSize: '1.2rem' }}>Recover Images</div>
+                    </div>
                 </StatsGrid>
 
                 <ControlsBar>
@@ -266,7 +281,9 @@ const AdminBlogsPage = () => {
                                 )}
                                 <ActionBtn onClick={() => setSelectedBlog(null)} style={{ borderRadius: '50%' }}><X size={20} /></ActionBtn>
                             </div>
-                            <img src={selectedBlog.imageUrl} alt="Cover" style={{ width: '100%', height: '350px', objectFit: 'cover', borderRadius: '8px', marginBottom: '2rem' }} />
+                            <div style={{ width: '100%', height: '350px', borderRadius: '8px', overflow: 'hidden', marginBottom: '2rem' }}>
+                                <OptimizedImage src={selectedBlog.imageUrl} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </div>
                             <h2 style={{ fontSize: '2.2rem', fontWeight: 800, marginBottom: '1rem', color: '#1a2b4c' }}>{selectedBlog.title}</h2>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', color: '#64748b', fontWeight: 700, marginBottom: '2rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1.5rem', fontSize: '0.9rem' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><User size={16} color="#FFBF00" /> {selectedBlog.authorName}</span>
@@ -285,6 +302,11 @@ const AdminBlogsPage = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <SystemMigrationModal
+                isOpen={isMigrationOpen}
+                onClose={() => setIsMigrationOpen(false)}
+            />
         </AdminContainer>
     );
 };

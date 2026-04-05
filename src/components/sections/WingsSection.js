@@ -181,7 +181,7 @@ const WingsSection = ({ id }) => { // ✨ Added id prop for scrolling
                   />
                 </CardImage>
                 <CardContent>
-                  <WingIcon><img src={wing.icon} alt={`${wing.title} Logo`} loading="lazy" /></WingIcon>
+                  <WingIcon><OptimizedImage src={wing.icon} alt={`${wing.title} Logo`} width={50} style={{ width: '50px', height: '50px', objectFit: 'contain' }} /></WingIcon>
                   <WingTitle>{wing.title}</WingTitle>
                   <WingDescription>{wing.description}</WingDescription>
                   <ExploreButton

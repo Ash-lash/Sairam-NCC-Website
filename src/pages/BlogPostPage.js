@@ -11,6 +11,7 @@ import { db } from '../firebase';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getUserIp } from '../utils/deviceInfo';
 import SEO from '../components/common/SEO';
+import OptimizedImage from '../components/common/OptimizedImage';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -306,7 +307,16 @@ const BlogPostPage = () => {
       </SidebarNav>
 
       <ArticleHero>
-        {blog.imageUrl && <img src={blog.imageUrl} className="bg-img" alt="Hero" />}
+        {blog.imageUrl && (
+          <OptimizedImage
+            src={blog.imageUrl}
+            className="bg-img"
+            alt="Hero"
+            width={1200}
+            quality={90}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        )}
         <div className="overlay" />
         <HeroContent>
           <motion.span initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="category">{blog.category}</motion.span>
@@ -317,13 +327,15 @@ const BlogPostPage = () => {
       <ReadingArea>
         <ArticleContent>
           <PostMeta>
-            {blog.authorPhotoUrl ? (
-              <img src={blog.authorPhotoUrl} className="avatar" alt="Author" />
-            ) : (
-              <div className="avatar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <User size={16} color="#94a3b8" />
-              </div>
-            )}
+            <div className="avatar" style={{ overflow: 'hidden' }}>
+              <OptimizedImage
+                src={blog.authorPhotoUrl || 'https://api.dicebear.com/7.x/initials/svg?seed=' + blog.authorName}
+                alt={blog.authorName}
+                width={50}
+                quality={60}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            </div>
             <div className="info">
               <span className="unit">{blog.category}</span>
               <span className="author">• Posted by {blog.authorName}</span>

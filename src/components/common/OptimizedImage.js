@@ -1,18 +1,65 @@
-import React, { memo, useState, useEffect, useRef } from 'react';
-import { getOptimizedUrl, getBlurUrl } from '../../utils/imageOptimizer';
+import React, { memo, useState, useEffect } from 'react';
+import styled, { keyframes } from 'styled-components';
+import { prefetchAndCache } from '../../utils/mediaCache';
 
-// Check if proxy is enabled (it is ON by default unless 'off')
-const IMAGE_PROXY_ENABLED = process.env.REACT_APP_IMAGE_PROXY !== 'off';
+const shimmer = keyframes`
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+`;
+
+const ImageContainer = styled.div`
+  position: relative;
+  overflow: hidden;
+  background-color: ${(props) => props.theme?.colors?.backgroundAlt || '#f3f4f6'};
+  border-radius: ${(props) => props.$borderRadius || 'inherit'};
+  aspect-ratio: ${(props) => props.$aspectRatio || 'auto'};
+  
+  /* Skeleton Loading Effect */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 200% 100%;
+    animation: ${shimmer} 1.5s infinite linear;
+    z-index: 1;
+    opacity: ${(props) => (props.$isLoaded ? 0 : 1)};
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+  }
+`;
+
+const StyledImage = styled.img`
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: ${(props) => props.$objectFit || 'cover'};
+  object-position: ${(props) => props.$objectPosition || 'center'};
+  opacity: ${(props) => (props.$isLoaded ? 1 : 0)};
+  transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 2;
+  will-change: opacity;
+`;
 
 /**
- * 1. SIMPLE MODE COMPONENT
- * Renders a standard HTML <img> tag. Used when optimization is disabled.
- * Zero overhead, guaranteed visibility.
+ * OptimizedImage Component
+ * 
+ * Provides native lazy-loading with a beautiful skeleton shimmer effect.
+ * Uses Asynchronous processes and Cache Memory for fast retrieval,
+ * matching premium e-commerce experiences.
  */
-const SimpleImage = memo(({
+const OptimizedImage = memo(({
     src,
-    width,
-    quality,
     alt = '',
     style = {},
     className = '',
@@ -20,130 +67,63 @@ const SimpleImage = memo(({
     objectFit = 'cover',
     objectPosition = 'center',
     aspectRatio,
+    loading = 'lazy', // Native lazy loading enabled by default
+    fetchpriority = 'auto',
     ...rest
 }) => {
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [displayUrl, setDisplayUrl] = useState(src);
+
+    useEffect(() => {
+        let isMounted = true;
+        
+        const loadMediaAsync = async () => {
+            // Using Asynchronous process logic for fast retrieval
+            const url = await prefetchAndCache(src);
+            if (isMounted) {
+                setDisplayUrl(url);
+            }
+        };
+
+        if (src) {
+            loadMediaAsync();
+        }
+
+        return () => { isMounted = false; };
+    }, [src]);
+
     if (!src) return null;
 
-    return (
-        <img
-            src={src}
-            alt={alt}
-            style={{
-                display: 'block',
-                width: '100%',
-                height: '100%',
-                objectFit: objectFit,
-                objectPosition: objectPosition,
-                ...style
-            }}
-            className={className}
-            onLoad={onLoad}
-            {...rest}
-            loading="lazy"
-        />
-    );
-});
-SimpleImage.displayName = 'SimpleImage';
-
-/**
- * 2. OPTIMIZED MODE COMPONENT
- * Renders with blur-up placeholder, intersection observer, and fade-in transition.
- * Only used if REACT_APP_IMAGE_PROXY=on.
- */
-const ComplexImage = memo(({
-    src,
-    width = 800,
-    quality = 80,
-    alt = '',
-    style = {},
-    className = '',
-    onLoad,
-    objectFit = 'cover',
-    objectPosition = 'center',
-    aspectRatio,
-    ...rest
-}) => {
-    const optimizedSrc = getOptimizedUrl(src, width, quality);
-    const blurSrc = getBlurUrl(src);
-
-    // Generate a simple srcset for basic responsive support
-    const srcSet = [
-        `${getOptimizedUrl(src, 300, quality)} 300w`,
-        `${getOptimizedUrl(src, 600, quality)} 600w`,
-        `${getOptimizedUrl(src, 1200, quality)} 1200w`,
-    ].join(', ');
-
-    const [loaded, setLoaded] = useState(false);
-    const [proxyError, setProxyError] = useState(false);
-
-    const containerStyle = {
-        position: 'relative',
-        overflow: 'hidden',
-        backgroundColor: 'transparent',
-        borderRadius: style.borderRadius || 'inherit',
-        ...(aspectRatio ? { aspectRatio } : {}),
-        ...style // Important: allow external styles to define primary container behavior
-    };
-
     const handleLoad = () => {
-        setLoaded(true);
-        onLoad?.();
-    };
-
-    const handleError = () => {
-        if (!proxyError) {
-            setProxyError(true);
-        }
+        setIsLoaded(true);
+        if (onLoad) onLoad();
     };
 
     return (
-        <div style={containerStyle} className={className}>
-            {/* Real Image */}
-            <img
-                src={proxyError ? src : optimizedSrc}
-                srcSet={proxyError ? undefined : srcSet}
-                sizes={proxyError ? undefined : (rest.sizes || `(max-width: 600px) 300px, (max-width: 1200px) 600px, 1200px`)}
-                alt={alt}
-                style={{
-                    display: 'block',
-                    width: '100%',
-                    height: '100%',
-                    objectFit,
-                    objectPosition,
-                    position: 'relative',
-                    zIndex: 2,
-                    opacity: loaded ? 1 : 0,
-                    transition: 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                }}
+        <ImageContainer
+            style={style}
+            className={className}
+            $isLoaded={isLoaded}
+            $borderRadius={style.borderRadius}
+            $aspectRatio={aspectRatio}
+        >
+            <StyledImage
+                src={displayUrl || src}
+                alt={alt || "Image"}
+                $isLoaded={isLoaded}
+                $objectFit={objectFit}
+                $objectPosition={objectPosition}
                 onLoad={handleLoad}
-                onError={handleError}
+                loading={loading}
+                fetchpriority={fetchpriority}
                 {...rest}
-                loading="lazy"
-                fetchpriority="auto"
             />
-
-            {/* Blur placeholder */}
-            {!proxyError && blurSrc && (
-                <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    backgroundImage: `url(${blurSrc})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    filter: 'blur(10px)',
-                    opacity: loaded ? 0 : 0.8,
-                    transition: 'opacity 0.8s ease-in-out',
-                    zIndex: 1
-                }} />
-            )}
-        </div>
+        </ImageContainer>
     );
 });
-ComplexImage.displayName = 'ComplexImage';
 
-/**
- * EXPORT: Choose implementation based on config.
- */
-const OptimizedImage = IMAGE_PROXY_ENABLED ? ComplexImage : SimpleImage;
+OptimizedImage.displayName = 'OptimizedImage';
 
 export default OptimizedImage;
+
+

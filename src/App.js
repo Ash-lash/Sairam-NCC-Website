@@ -15,9 +15,8 @@ import EventNotification from './components/ui/EventNotification';
 import ScrollToTop from './components/common/ScrollToTop';
 import AdminRoute from './components/auth/AdminRoute';
 import LoadingScreen from './components/ui/LoadingScreen';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
-import { db } from './firebase';
-import { getOptimizedUrl, preloadImages } from './utils/imageOptimizer';
+import { preloadImages } from './utils/imageOptimizer';
+import { prefetchList } from './utils/mediaCache';
 
 // Import logos for preloading
 import armyLogo from './assets/army-logo.png';
@@ -46,6 +45,7 @@ const AdminAlumniPage = lazy(() => import('./pages/AdminAlumniPage'));
 const AdminEventsPage = lazy(() => import('./pages/AdminEventsPage'));
 const AdminOrganizationPage = lazy(() => import('./pages/AdminOrganizationPage'));
 const DepartmentCadetsPage = lazy(() => import('./pages/DepartmentCadetsPage'));
+const StrengthChartPage = lazy(() => import('./pages/StrengthChartPage'));
 const MagicMembersPage = lazy(() => import('./pages/MagicMembersPage'));
 const NccTeamsPage = lazy(() => import('./pages/NccTeamsPage'));
 const AdminMagicMembersPage = lazy(() => import('./pages/AdminMagicMembersPage'));
@@ -60,6 +60,7 @@ const SubmitBlogPage = lazy(() => import('./pages/SubmitBlogPage'));
 const AdminBlogsPage = lazy(() => import('./pages/AdminBlogsPage'));
 const ScholarshipsPage = lazy(() => import('./pages/ScholarshipsPage'));
 const AdminScholarshipsPage = lazy(() => import('./pages/AdminScholarshipsPage'));
+const AdminRegistrationManager = lazy(() => import('./pages/AdminRegistrationManager'));
 
 
 
@@ -76,9 +77,6 @@ function App() {
   const [showLoading, setShowLoading] = useState(true);
 
   useEffect(() => {
-    // Reduced to 2 seconds for a snappier experience as per client feedback
-    const minTimer = new Promise(resolve => setTimeout(resolve, 2000));
-
     const preloadEverything = async () => {
       try {
         // --- PERFORMANCE FIX: Only preload critical UI/Hero Assets ---
@@ -89,7 +87,12 @@ function App() {
           armyLogo, navyLogo, airforceLogo, nccLogo, sairamLogo
         ];
 
+        // 1. Classical Memory Preload
         preloadImages(staticAssets);
+        
+        // 2. Asynchronous Cache Memory Storage (JavaScript/Java Logic)
+        // This persists assets for fast Amazon-like retrieval on next visit
+        prefetchList(staticAssets);
 
       } catch (error) {
         console.error("Critical Preload failed:", error);
@@ -130,6 +133,7 @@ function App() {
               <Route path="/admin-login" element={<AdminLoginPage />} />
 
               <Route path="/departments" element={<DepartmentCadetsPage />} />
+              <Route path="/strength-chart" element={<StrengthChartPage />} />
               <Route path="/magic-members" element={<MagicMembersPage />} />
               <Route path="/teams" element={<NccTeamsPage />} />
               <Route path="/gallery" element={<GalleryPage />} />
@@ -154,6 +158,7 @@ function App() {
                 <Route path="/admin/announcements" element={<AdminAnnouncementsPage />} />
                 <Route path="/admin/leadership" element={<AdminLeadershipPage />} />
                 <Route path="/admin/blogs" element={<AdminBlogsPage />} />
+                <Route path="/admin/registrations" element={<AdminRegistrationManager />} />
               </Route>
             </Routes>
           </Suspense>

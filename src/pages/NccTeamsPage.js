@@ -496,7 +496,7 @@ const NccTeamsPage = () => {
                   initial={{ scale: 0 }} animate={{ scale: 1 }}
                   style={{ width: '120px', height: '120px', background: 'white', borderRadius: '30px', margin: '0 0 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.1)' }}
                 >
-                  {selectedTeam.iconURL ? <img src={selectedTeam.iconURL} alt="Icon" loading="lazy" style={{ width: '65%', height: '65%', objectFit: 'contain' }} /> : <ShieldCheck size={50} color="#2563eb" />}
+                  {selectedTeam.iconURL ? <OptimizedImage src={selectedTeam.iconURL} alt="Icon" width={100} style={{ width: '65%', height: '65%', objectFit: 'contain' }} /> : <ShieldCheck size={50} color="#2563eb" />}
                 </motion.div>
                 <h2 style={{ fontSize: '3.5rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.5rem', letterSpacing: '-0.02em' }}>{selectedTeam.name}</h2>
                 <p style={{ fontSize: '1.2rem', color: '#64748b', fontWeight: 500 }}>Batch Yearbooks & Portfolios</p>

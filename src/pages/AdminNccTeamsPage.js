@@ -8,6 +8,7 @@ import { Plus, Trash2, X, ChevronLeft, Home, Zap, ShieldCheck, Edit2, Download }
 import { uploadFile } from '../utils/uploadHelper';
 import SEO from '../components/common/SEO';
 import { downloadImage } from '../utils/downloadHelper';
+import OptimizedImage from '../common/OptimizedImage';
 
 const float = keyframes`
   0% { transform: translateY(0px); }
@@ -412,7 +413,7 @@ const AdminNccTeamsPage = () => {
                             <Card key={team.id} onClick={() => handleOpenTeam(team)} whileHover={{ y: -5 }}>
                                 <CardHeader>
                                     <IconBox>
-                                        {team.iconURL ? <img src={team.iconURL} alt="Icon" loading="lazy" /> : <ShieldCheck size={32} />}
+                                        {team.iconURL ? <OptimizedImage src={team.iconURL} alt="Icon" width={100} style={{ width: '60%', height: '60%', objectFit: 'contain' }} /> : <ShieldCheck size={32} />}
                                     </IconBox>
                                     <DeleteButton onClick={(e) => handleDeleteTeam(e, team.id)}><Trash2 size={16} /></DeleteButton>
                                 </CardHeader>
@@ -442,7 +443,7 @@ const AdminNccTeamsPage = () => {
                                     </div>
                                 </CardHeader>
                                 <BatchPosterPreview>
-                                    {batch.posterURL ? <img src={batch.posterURL} alt="Poster" loading="lazy" /> : <div style={{ textAlign: 'center' }}><Zap size={32} color="#cbd5e1" /><p style={{ fontSize: '0.7rem', color: '#94a3b8' }}>No Poster</p></div>}
+                                    {batch.posterURL ? <OptimizedImage src={batch.posterURL} alt="Poster" width={400} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ textAlign: 'center' }}><Zap size={32} color="#cbd5e1" /><p style={{ fontSize: '0.7rem', color: '#94a3b8' }}>No Poster</p></div>}
                                     {batch.posterURLs && batch.posterURLs.length > 1 && (
                                         <div style={{ position: 'absolute', bottom: '1rem', right: '1rem', background: 'rgba(0,0,0,0.6)', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.75rem' }}>
                                             +{batch.posterURLs.length - 1} more
@@ -499,7 +500,7 @@ const AdminNccTeamsPage = () => {
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
                                         {existingImages.map((src, index) => (
                                             <div key={index} style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '8px', overflow: 'hidden' }}>
-                                                <img src={src} alt="existing" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                <OptimizedImage src={src} alt="existing" width={100} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                 <button
                                                     onClick={() => handleRemoveExistingImage(index)}
                                                     style={{ position: 'absolute', top: 0, right: 0, background: 'rgba(255,0,0,0.8)', color: 'white', border: 'none', fontSize: '12px', cursor: 'pointer', padding: '2px 4px' }}

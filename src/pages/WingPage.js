@@ -3,9 +3,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { ArrowLeft, Users, Target, Trophy, Calendar, ChevronLeft, Edit, Plus, Trash2, ChevronRight, GripVertical, Download } from 'lucide-react';
-import { armyRankOrder, navyRankOrder, airForceRankOrder, getFullRank } from '../rankStructure';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayRemove, writeBatch, orderBy, limit } from 'firebase/firestore';
+import { ArrowLeft, Users, Target, Trophy, Calendar, ChevronLeft, Edit, Edit2, Plus, Trash2, ChevronRight, GripVertical, Download, CheckSquare, Square, CheckCircle2, RotateCcw, X as CloseIcon } from 'lucide-react';
+import { armyRankOrder, navyRankOrder, airForceRankOrder, getFullRank, normalizeRank } from '../rankStructure';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, arrayRemove, arrayUnion, deleteDoc, writeBatch, orderBy, limit } from 'firebase/firestore';
 import {
   DndContext,
   closestCenter,
@@ -29,6 +29,7 @@ import CadetDetailModal from '../components/ui/CadetDetailModal';
 import AdminCadetEditor from '../components/admin/AdminCadetEditor';
 import AddCadetModal from '../components/admin/AddCadetModal';
 import AddBatchModal from '../components/admin/AddBatchModal';
+import EditBatchModal from '../components/admin/EditBatchModal';
 import OptimizedImage from '../components/common/OptimizedImage';
 import SEO from '../components/common/SEO';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
@@ -383,6 +384,45 @@ const DeleteBatchButton = styled.button`
     color: white;
   }
 `;
+
+const EditBatchButton = styled.button`
+  position: absolute;
+  top: 1rem;
+  right: 3.5rem;
+  background: #f0f7ff;
+  color: #2563eb;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+  &:hover {
+    background: #2563eb;
+    color: white;
+    transform: scale(1.1);
+  }
+`;
+
+const UndoToast = styled(motion.div)`
+  position: fixed;
+  bottom: 2rem;
+  left: 2rem;
+  background: #1A2B4C;
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  z-index: 2500;
+  border: 1px solid rgba(255,255,255,0.1);
+`;
 const DetailsHeader = styled.div`
   display: flex;
   justify-content: space-between;
@@ -454,16 +494,7 @@ const CadetPhotoContainer = styled.div`
     border: 3px solid white;
   `}
 `;
-const CadetPhoto = styled.img.attrs({
-  loading: "lazy",
-  decoding: "async",
-  fetchPriority: "low"
-})`
-  width: 100%;
-  height: 100%;
-  object-fit: ${props => props.$rounded ? 'cover' : 'contain'};
-  border-radius: ${props => props.$rounded ? '50%' : '0'};
-`;
+// CadetPhoto is now handled by OptimizedImage component directly for caching
 const CadetName = styled.p`
   font-weight: 700;
   font-size: 1.1rem;
@@ -508,8 +539,8 @@ const AdminEditButton = styled.button`
 
 const AdminDownloadButton = styled.button`
   position: absolute;
-  top: 8px;
-  right: 52px; /* Next to Edit button */
+  top: 52px;
+  right: 8px;
   background: #2563eb;
   color: white;
   border: none;
@@ -518,7 +549,7 @@ const AdminDownloadButton = styled.button`
   height: 36px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   cursor: pointer;
   z-index: 10;
   font-weight: 700;
@@ -531,6 +562,29 @@ const AdminDownloadButton = styled.button`
     transform: scale(1.05);
   }
   &:active { transform: scale(0.95); }
+`;
+
+const AdminDeleteButton = styled.button`
+  position: absolute;
+  top: 8px;
+  right: 52px;
+  background: rgba(220, 38, 38, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(5px);
+  z-index: 10;
+  transition: all 0.2s;
+  &:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+  }
 `;
 
 const DragHandle = styled.div`
@@ -725,6 +779,76 @@ const DeleteMaterialBtn = styled.button`
     color: white;
   }
 `;
+
+const BulkActionToolbar = styled(motion.div)`
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1A2B4C;
+  padding: 1rem 2rem;
+  border-radius: 100px;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  z-index: 1000;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.1);
+`;
+
+const SelectionCount = styled.div`
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-right: 1.5rem;
+  border-right: 1px solid rgba(255,255,255,0.2);
+`;
+
+const ToolbarButton = styled.button`
+  background: ${props => props.$variant === 'danger' ? '#ef4444' : 'transparent'};
+  color: white;
+  border: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 50px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: ${props => props.$variant === 'danger' ? '#dc2626' : 'rgba(255,255,255,0.1)'};
+    transform: translateY(-2px);
+  }
+`;
+
+const SelectionBox = styled.div`
+  position: absolute;
+  top: 8px;
+  left: ${props => props.$isAdmin ? '48px' : '8px'};
+  z-index: 20;
+  cursor: pointer;
+  color: ${props => props.$selected ? '#2563eb' : 'rgba(255,255,255,0.8)'};
+  background: ${props => props.$selected ? 'white' : 'rgba(0,0,0,0.2)'};
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s;
+
+  &:hover {
+    transform: scale(1.1);
+    background: white;
+    color: #2563eb;
+  }
+`;
 // ---
 
 const Skeleton = styled.div`
@@ -742,7 +866,7 @@ const Skeleton = styled.div`
   }
 `;
 
-const SortableCadetCard = ({ cadet, isAdmin, onCadetClick, onAdminEdit, useRoundedFrames }) => {
+const SortableCadetCard = ({ cadet, isAdmin, onCadetClick, onAdminEdit, onDeleteCadet, useRoundedFrames, isSelected, onToggleSelect }) => {
   // Simple: just track if the image failed — no hiding, no timers
   const [imgFailed, setImgFailed] = useState(false);
   const {
@@ -772,6 +896,15 @@ const SortableCadetCard = ({ cadet, isAdmin, onCadetClick, onAdminEdit, useRound
       whileHover={isDragging ? {} : { y: -5 }}
     >
       {isAdmin && (
+        <SelectionBox 
+          $isAdmin={isAdmin} 
+          $selected={isSelected} 
+          onClick={(e) => { e.stopPropagation(); onToggleSelect(cadet.id); }}
+        >
+          {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+        </SelectionBox>
+      )}
+      {isAdmin && (
         <>
           <DragHandle {...attributes} {...listeners}>
             <GripVertical size={16} />
@@ -782,9 +915,14 @@ const SortableCadetCard = ({ cadet, isAdmin, onCadetClick, onAdminEdit, useRound
             if (photoUrl) downloadImage(photoUrl, `cadet_${cadet.Name || cadet.name}`);
           }}>
             <Download size={14} />
-            <span>Download</span>
           </AdminDownloadButton>
-          <AdminEditButton onClick={() => onAdminEdit(cadet)}>
+          <AdminDeleteButton onClick={(e) => {
+            e.stopPropagation();
+            onDeleteCadet(cadet);
+          }}>
+            <Trash2 size={16} />
+          </AdminDeleteButton>
+          <AdminEditButton onClick={(e) => { e.stopPropagation(); onAdminEdit(cadet); }}>
             <Edit size={16} />
           </AdminEditButton>
         </>
@@ -823,7 +961,7 @@ const SortableCadetCard = ({ cadet, isAdmin, onCadetClick, onAdminEdit, useRound
 };
 
 // BatchDetails Component
-const BatchDetails = ({ wing, cadetsByRank, loading, onCadetClick, onAdminEdit, onDragEnd, useRoundedFrames }) => {
+const BatchDetails = ({ wing, cadetsByRank, loading, onCadetClick, onAdminEdit, onDeleteCadet, onDragEnd, useRoundedFrames, selectedIds, onToggleSelect }) => {
   const { isAdmin } = useAuth();
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -837,12 +975,15 @@ const BatchDetails = ({ wing, cadetsByRank, loading, onCadetClick, onAdminEdit, 
   );
 
   const getRankOrder = () => {
-    if (wing === 'army' || wing === 'army-bn' || wing === 'army-med') {
+    const w = wing?.toLowerCase();
+    if (w === 'army' || w === 'army-bn' || w === 'army-med' || w === 'army bty') {
       return armyRankOrder;
     }
-    switch (wing) {
+    switch (w) {
       case 'navy': return navyRankOrder;
-      case 'airforce': return airForceRankOrder;
+      case 'air':
+      case 'airforce':
+      case 'air-force': return airForceRankOrder;
       default: return [];
     }
   };
@@ -882,7 +1023,10 @@ const BatchDetails = ({ wing, cadetsByRank, loading, onCadetClick, onAdminEdit, 
                       isAdmin={isAdmin}
                       onCadetClick={onCadetClick}
                       onAdminEdit={onAdminEdit}
+                      onDeleteCadet={onDeleteCadet}
                       useRoundedFrames={useRoundedFrames}
+                      isSelected={selectedIds.includes(cadet.id)}
+                      onToggleSelect={onToggleSelect}
                     />
                   ))}
                 </CadetGrid>
@@ -949,6 +1093,10 @@ const WingPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddCadetModalOpen, setIsAddCadetModalOpen] = useState(false);
   const [isAddBatchModalOpen, setIsAddBatchModalOpen] = useState(false);
+  const [isEditBatchModalOpen, setIsEditBatchModalOpen] = useState(false);
+  const [batchToEdit, setBatchToEdit] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [undoData, setUndoData] = useState(null);
   const [selectedCadet, setSelectedCadet] = useState(null);
   const [cadetsByRank, setCadetsByRank] = useState({});
   const [loading, setLoading] = useState(false);
@@ -1105,7 +1253,8 @@ const WingPage = () => {
 
       // Group and sort
       const grouped = fetchedCadets.reduce((acc, cadet) => {
-        const rank = cadet.rank || "Unranked";
+        const rawRank = cadet.rank || cadet.Rank || "Unranked";
+        const rank = normalizeRank(rawRank);
         if (!acc[rank]) acc[rank] = [];
         acc[rank].push(cadet);
         return acc;
@@ -1143,6 +1292,7 @@ const WingPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
     setSelectedBatch(null);
+    setSelectedIds([]);
   }, [wingType]);
 
   // Function to handle deleting a batch (requires admin)
@@ -1168,20 +1318,33 @@ const WingPage = () => {
       );
 
       // Delete all cadets in the batch using Firestore Batch
-      const firestoreBatch = writeBatch(db);
+      const firestoreBatchOp = writeBatch(db);
       const refsToDelete = new Map();
+      const deletedCadets = [];
       querySnapshots.forEach((snapshot) => {
-        snapshot.forEach((docSnap) => refsToDelete.set(docSnap.id, docSnap.ref));
+        snapshot.forEach((docSnap) => {
+          refsToDelete.set(docSnap.id, docSnap.ref);
+          deletedCadets.push({ id: docSnap.id, ...docSnap.data() });
+        });
       });
-      refsToDelete.forEach((docRef) => firestoreBatch.delete(docRef));
-      await firestoreBatch.commit();
+      refsToDelete.forEach((docRef) => firestoreBatchOp.delete(docRef));
+      await firestoreBatchOp.commit();
 
       // Remove the batch name from the config document
       const batchDocRef = doc(db, 'config', 'batches');
       await updateDoc(batchDocRef, {
-        [wingType]: arrayRemove(batchToDelete) // Use the full batch name (e.g., "1. 2022-2025")
+        [wingType]: arrayRemove(batchToDelete)
       });
-      handleDataChange(); // Trigger re-fetch of batches
+
+      // Save for Undo
+      setUndoData({
+        type: 'batch',
+        batchName: batchToDelete,
+        cadets: deletedCadets,
+        wing: wingType
+      });
+
+      handleDataChange();
     } catch (error) {
       console.error("Error deleting batch:", error);
       alert("Failed to delete batch.");
@@ -1212,11 +1375,9 @@ const WingPage = () => {
 
     const newOrder = arrayMove(rankCadets, oldIndex, newIndex);
 
-    // Update locally for instant state
     const updatedGrouped = { ...cadetsByRank, [rank]: newOrder };
     setCadetsByRank(updatedGrouped);
 
-    // Persist to Firestore
     try {
       const batchOp = writeBatch(db);
       newOrder.forEach((cadet, index) => {
@@ -1224,10 +1385,90 @@ const WingPage = () => {
         batchOp.update(ref, { order: index });
       });
       await batchOp.commit();
-      console.log("Reordering saved to Firestore.");
     } catch (error) {
       console.error("Error saving reorder:", error);
-      fetchCadets(); // Revert on error
+      fetchCadets();
+    }
+  };
+
+  const handleToggleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const handleSingleDelete = async (cadet) => {
+    if (!cadet || !window.confirm(`Are you sure you want to delete ${cadet.Name}? This cannot be undone.`)) return;
+    
+    setLoading(true);
+    try {
+      await deleteDoc(doc(db, 'cadets', cadet.id));
+      setUndoData({ type: 'selection', cadets: [cadet] });
+      handleDataChange();
+    } catch (error) {
+      console.error("Delete failed:", error);
+      alert("Failed to delete cadet.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!selectedIds.length || !window.confirm(`Are you sure you want to delete ${selectedIds.length} selected cadets? This cannot be undone.`)) return;
+    
+    setLoading(true);
+    try {
+      const firestoreBatchOp = writeBatch(db);
+      const deletedCadets = [];
+      selectedIds.forEach(id => {
+        const cadet = Object.values(cadetsByRank).flat().find(c => c.id === id);
+        if (cadet) deletedCadets.push(cadet);
+        firestoreBatchOp.delete(doc(db, 'cadets', id));
+      });
+      await firestoreBatchOp.commit();
+      
+      setUndoData({ type: 'selection', cadets: deletedCadets });
+      setSelectedIds([]);
+      handleDataChange();
+    } catch (error) {
+      console.error("Bulk delete failed:", error);
+      alert("Failed to delete selected cadets.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUndo = async () => {
+    if (!undoData) return;
+    setLoading(true);
+    try {
+      if (undoData.type === 'batch') {
+        const firestoreBatchOp = writeBatch(db);
+        undoData.cadets.forEach(cadetData => {
+          const { id, ...data } = cadetData;
+          firestoreBatchOp.set(doc(db, 'cadets', id), data);
+        });
+
+        const batchDocRef = doc(db, 'config', 'batches');
+        firestoreBatchOp.update(batchDocRef, {
+          [undoData.wing]: arrayUnion(undoData.batchName)
+        });
+
+        await firestoreBatchOp.commit();
+      } else { // This handles 'selection' type
+        const firestoreBatchOp = writeBatch(db);
+        undoData.cadets.forEach(cadetData => {
+          const { id, ...data } = cadetData;
+          firestoreBatchOp.set(doc(db, 'cadets', id), data);
+        });
+        await firestoreBatchOp.commit();
+      }
+      setUndoData(null);
+      handleDataChange();
+      alert("Restore successful!");
+    } catch (err) {
+      console.error("Undo failed:", err);
+      alert("Could not restore data.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1263,8 +1504,10 @@ const WingPage = () => {
               'Name': cadet.Name || 'N/A',
               'Regimental Number': cadet.regimentalNo || 'N/A',
               'Department': cadet.dept || 'N/A',
+              'Section': cadet.section || 'N/A',
               'Student ID': cadet.secID || 'N/A',
-              'Dossier': cadet.pdfURL || 'N/A'
+              'Dossier': cadet.pdfURL || 'N/A',
+              'Photo Link': cadet.photoURL || 'N/A'
             });
           });
         }
@@ -1289,8 +1532,10 @@ const WingPage = () => {
         { wch: 30 }, // Name
         { wch: 25 }, // Regimental No
         { wch: 20 }, // Dept
+        { wch: 10 }, // Section
         { wch: 15 }, // Student ID
-        { wch: 50 }  // Dossier
+        { wch: 50 }, // Dossier
+        { wch: 50 }  // Photo
       ];
       worksheet['!cols'] = wscols;
 
@@ -1353,8 +1598,10 @@ const WingPage = () => {
         'Name': cadet.Name || 'N/A',
         'Regimental Number': cadet.regimentalNo || 'N/A',
         'Department': cadet.dept || 'N/A',
+        'Section': cadet.section || 'N/A',
         'Student ID': cadet.secID || 'N/A',
-        'Dossier': cadet.pdfURL || 'N/A'
+        'Dossier': cadet.pdfURL || 'N/A',
+        'Photo Link': cadet.photoURL || 'N/A'
       }));
 
       if (excelData.length === 0) {
@@ -1372,8 +1619,10 @@ const WingPage = () => {
         { wch: 30 }, // Name
         { wch: 25 }, // Regimental No
         { wch: 20 }, // Dept
+        { wch: 10 }, // Section
         { wch: 15 }, // Student ID
-        { wch: 50 }  // Dossier
+        { wch: 50 }, // Dossier
+        { wch: 50 }  // Photo
       ];
       worksheet['!cols'] = wscols;
 
@@ -1589,7 +1838,16 @@ const WingPage = () => {
               <SelectionGrid>
                 {batches.map((batchName) => (
                   <SelectionCardContainer key={batchName} whileHover={{ scale: 1.03 }}>
-                    {isAdmin && <DeleteBatchButton onClick={(e) => { e.stopPropagation(); handleDeleteBatch(batchName); }}><Trash2 size={16} /></DeleteBatchButton>}
+                    {isAdmin && (
+                      <>
+                        <EditBatchButton onClick={(e) => { e.stopPropagation(); setBatchToEdit(batchName); setIsEditBatchModalOpen(true); }}>
+                          <Edit2 size={16} />
+                        </EditBatchButton>
+                        <DeleteBatchButton onClick={(e) => { e.stopPropagation(); handleDeleteBatch(batchName); }}>
+                          <Trash2 size={16} />
+                        </DeleteBatchButton>
+                      </>
+                    )}
                     <SelectionCard onClick={() => setSelectedBatch(batchName)}>
                       {batchName.includes('.') ? batchName.substring(batchName.indexOf(' ') + 1) : batchName}
                     </SelectionCard>
@@ -1626,13 +1884,60 @@ const WingPage = () => {
                 loading={loading}
                 onCadetClick={handleCadetClick}
                 onAdminEdit={handleAdminEditClick}
+                onDeleteCadet={handleSingleDelete}
                 onDragEnd={handleDragEnd}
                 useRoundedFrames={selectedBatch && selectedBatch.includes('2022-2025') && (wingType === 'army' || wingType === 'airforce')}
+                selectedIds={selectedIds}
+                onToggleSelect={handleToggleSelect}
               />
             </div>
           )}
         </div>
       </ContentSection>
+
+      {/* Bulk Action Toolbar */}
+      <AnimatePresence>
+        {selectedIds.length > 0 && (
+          <BulkActionToolbar
+            initial={{ y: 100, x: '-50%', opacity: 0 }}
+            animate={{ y: 0, x: '-50%', opacity: 1 }}
+            exit={{ y: 100, x: '-50%', opacity: 0 }}
+          >
+            <SelectionCount>
+              <CheckCircle2 size={20} color="#10b981" />
+              {selectedIds.length} Selected
+            </SelectionCount>
+            
+            <ToolbarButton onClick={() => setSelectedIds([])}>
+              <CloseIcon size={18} /> Deselect All
+            </ToolbarButton>
+
+            <ToolbarButton $variant="danger" onClick={handleBulkDelete}>
+              <Trash2 size={18} /> Delete Selected
+            </ToolbarButton>
+          </BulkActionToolbar>
+        )}
+      </AnimatePresence>
+
+      {/* Undo Toast */}
+      <AnimatePresence>
+        {undoData && (
+          <UndoToast
+            initial={{ x: -100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -100, opacity: 0 }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <RotateCcw size={20} color="#60a5fa" />
+              <span>{undoData.type === 'batch' ? `Batch "${undoData.batchName}" deleted` : `${undoData.cadets.length} cadets deleted`}</span>
+            </div>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <ToolbarButton onClick={handleUndo} style={{ background: '#2563eb', padding: '0.4rem 1rem' }}>Undo</ToolbarButton>
+              <ToolbarButton onClick={() => setUndoData(null)} style={{ padding: '0.4rem' }}><CloseIcon size={18} /></ToolbarButton>
+            </div>
+          </UndoToast>
+        )}
+      </AnimatePresence>
 
       {/* Modals */}
       <CadetDetailModal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} cadet={selectedCadet} />
@@ -1643,6 +1948,7 @@ const WingPage = () => {
             onClose={() => setIsEditModalOpen(false)}
             cadet={selectedCadet}
             onComplete={handleDataChange} // Refresh data on complete
+            onDelete={(cadet) => setUndoData({ type: 'selection', cadets: [cadet] })}
           />
           <AddCadetModal
             isOpen={isAddCadetModalOpen}
@@ -1656,6 +1962,13 @@ const WingPage = () => {
             onClose={() => setIsAddBatchModalOpen(false)}
             wing={wingType}
             onComplete={handleDataChange} // Refresh data on complete
+          />
+          <EditBatchModal
+            isOpen={isEditBatchModalOpen}
+            onClose={() => { setIsEditBatchModalOpen(false); setBatchToEdit(null); }}
+            wing={wingType}
+            oldBatchName={batchToEdit}
+            onComplete={handleDataChange}
           />
         </>
       )}

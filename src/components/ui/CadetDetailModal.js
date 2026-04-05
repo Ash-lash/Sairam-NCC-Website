@@ -1,10 +1,11 @@
 // src/components/ui/CadetDetailModal.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { X, ExternalLink, Download } from 'lucide-react';
 import { downloadImage } from '../../utils/downloadHelper';
 import { getFullRank } from '../../rankStructure';
+import { prefetchAndCache } from '../../utils/mediaCache';
 
 // --- STYLES (No Change) ---
 const ModalBackdrop = styled(motion.div)`
@@ -55,14 +56,56 @@ const ActionButton = styled.a`
   line-height: 0; color: #1A2B4C;
   &:hover { color: #007bff; }
 `;
+
+const Loader = styled.div`
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const Spinner = styled.div`
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(26, 43, 76, 0.1);
+  border-left-color: #1A2B4C;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  @keyframes spin { to { transform: rotate(360deg); } }
+`;
 // ---
 
 const CadetDetailModal = ({ isOpen, onClose, cadet }) => {
+  const [cachedUrl, setCachedUrl] = useState(null);
+  const [isFetching, setIsFetching] = useState(false);
 
-  // --- THE FINAL, SIMPLE LOGIC ---
-  // We just use the URL directly from the database.
-  const pdfUrlToDisplay = cadet ? cadet.pdfURL : '';
-  // ---
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchPdfAsync = async () => {
+      if (isOpen && cadet && cadet.pdfURL) {
+        setIsFetching(true);
+        // Using Asynchronous process (JavaScript/Java logic) for fast retrieval
+        const url = await prefetchAndCache(cadet.pdfURL);
+        if (isMounted) {
+          setCachedUrl(url);
+          setIsFetching(false);
+        }
+      }
+    };
+
+    if (isOpen) {
+      fetchPdfAsync();
+    } else {
+      setCachedUrl(null);
+    }
+
+    return () => { isMounted = false; };
+  }, [isOpen, cadet]);
+
+  const pdfUrlToDisplay = cachedUrl || (cadet ? cadet.pdfURL : '');
 
   return (
     <AnimatePresence>
@@ -77,16 +120,16 @@ const CadetDetailModal = ({ isOpen, onClose, cadet }) => {
             <ModalHeader>
               <ModalTitle>{cadet.Name}'s Dossier</ModalTitle>
               <HeaderActions>
-                {pdfUrlToDisplay && (
+                {cadet.pdfURL && (
                   <>
                     <ActionButton
-                      onClick={() => downloadImage(pdfUrlToDisplay, `dossier_${cadet.Name}.pdf`)}
+                      onClick={() => downloadImage(cadet.pdfURL, `dossier_${cadet.Name}.pdf`)}
                       title="Download Dossier"
                     >
                       <Download size={20} />
                     </ActionButton>
                     <ActionButton
-                      href={pdfUrlToDisplay}
+                      href={cadet.pdfURL}
                       target="_blank"
                       rel="noopener noreferrer"
                       title="Open in new tab"
@@ -99,23 +142,32 @@ const CadetDetailModal = ({ isOpen, onClose, cadet }) => {
               </HeaderActions>
             </ModalHeader>
 
-            {pdfUrlToDisplay ? (
+            {cadet.pdfURL ? (
               <div style={{ flexGrow: 1, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                <PDFViewer
-                  src={pdfUrlToDisplay}
-                  title={`${cadet.Name}'s Details`}
-                />
-                <div style={{
-                  padding: '1rem',
-                  background: '#f8fafc',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  borderTop: '1px solid #e2e8f0'
-                }}>
-                  <OpenPDFButton href={pdfUrlToDisplay} target="_blank" rel="noopener noreferrer">
-                    View Full Dossier in New Tab
-                  </OpenPDFButton>
-                </div>
+                {isFetching ? (
+                  <Loader>
+                    <Spinner />
+                    <p style={{ color: '#1A2B4C', fontWeight: 600 }}>Optimizing retrieval...</p>
+                  </Loader>
+                ) : (
+                  <>
+                    <PDFViewer
+                      src={pdfUrlToDisplay}
+                      title={`${cadet.Name}'s Details`}
+                    />
+                    <div style={{
+                      padding: '1rem',
+                      background: '#f8fafc',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      borderTop: '1px solid #e2e8f0'
+                    }}>
+                      <OpenPDFButton href={cadet.pdfURL} target="_blank" rel="noopener noreferrer">
+                        View Full Dossier in New Tab
+                      </OpenPDFButton>
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
               // Empty state for cadets with no PDF
@@ -140,4 +192,4 @@ const CadetDetailModal = ({ isOpen, onClose, cadet }) => {
   );
 };
 
-export default CadetDetailModal;
+export default CadetDetailModal;

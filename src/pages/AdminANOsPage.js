@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { uploadFileToFirebaseStorage as uploadFile } from '../utils/firebaseStorage';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
 import { downloadImage } from '../utils/downloadHelper';
-
+import OptimizedImage from '../components/common/OptimizedImage';
 import SEO from '../components/common/SEO';
 
 const PageContainer = styled.div`
@@ -89,13 +89,14 @@ const DragHandle = styled.div`
   }
 `;
 
-const ANOPhoto = styled.img`
+// ANOPhoto is now handled by OptimizedImage
+const ANOPhotoContainer = styled.div`
   width: 100px;
   height: 130px;
   border-radius: 12px;
-  object-fit: contain;
   border: 2px solid #eee;
   background: #f8fafc;
+  overflow: hidden;
 `;
 
 const ANOInfo = styled.div`
@@ -476,7 +477,17 @@ const AdminANOsPage = () => {
                           <GripVertical size={24} />
                         </DragHandle>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                          {ano.photoUrl && <ANOPhoto src={getOptimizedUrl(ano.photoUrl, 300, 80)} alt={ano.name} />}
+                          {ano.photoUrl && (
+                            <ANOPhotoContainer>
+                              <OptimizedImage
+                                src={ano.photoUrl}
+                                alt={ano.name}
+                                width={300}
+                                quality={80}
+                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                              />
+                            </ANOPhotoContainer>
+                          )}
                           <ANOInfo>
                             <h3>{ano.rank} {ano.name}</h3>
                             <p><strong>{ano.wing} Wing</strong></p>

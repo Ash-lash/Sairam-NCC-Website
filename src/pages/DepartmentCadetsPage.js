@@ -749,7 +749,9 @@ const DepartmentCadetsPage = () => {
         'Student ID': cadet.studentID || cadet.secID || 'N/A',
         'Batch': cadet.Batch || 'N/A',
         'Wing': cadet.Wing || 'N/A',
-        'Dossier': cadet.pdfURL || 'N/A'
+        'Section': cadet.section || 'N/A',
+        'Dossier': cadet.pdfURL || 'N/A',
+        'Photo Link': cadet.photoURL || 'N/A'
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(excelData);

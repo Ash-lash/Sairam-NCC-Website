@@ -60,6 +60,26 @@ export const rankFullForms = {
 };
 
 export const getFullRank = (rank) => {
-  const fullForm = rankFullForms[rank];
-  return fullForm ? `${fullForm} (${rank})` : rank;
+  const normalized = rank?.trim().toUpperCase() || '';
+  const fullForm = rankFullForms[normalized];
+  return fullForm ? `${fullForm} (${normalized})` : rank;
+};
+
+export const normalizeRank = (rankLabel = '') => {
+  const label = rankLabel.trim().toUpperCase();
+  // If it's already a shorthand, return it
+  if (rankFullForms[label]) return label;
+  
+  // Try to find the shorthand from the full name
+  for (const [shorthand, fullName] of Object.entries(rankFullForms)) {
+    if (label === fullName.toUpperCase() || label === `${fullName.toUpperCase()} (${shorthand})`) {
+      return shorthand;
+    }
+  }
+  
+  // Try partial match if it contains the shorthand in parentheses
+  const match = label.match(/\(([^)]+)\)/);
+  if (match && rankFullForms[match[1]]) return match[1];
+
+  return label;
 };

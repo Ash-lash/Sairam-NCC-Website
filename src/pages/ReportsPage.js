@@ -15,7 +15,7 @@ const Header = styled(motion.div)` text-align: center; margin-bottom: 2rem; `;
 const Title = styled.h1` font-size: 3.5rem; font-weight: 800; color: #1A2B4C; `;
 const ViewSwitcher = styled.div` display: flex; justify-content: center; margin-bottom: 4rem; `;
 const SwitchButton = styled.button` background: #FFFFFF; border: 1px solid #ddd; color: #1A2B4C; padding: 0.75rem 1.5rem; border-radius: 50px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-family: inherit; font-size: 1rem; `;
-const ReportGrid = styled(motion.div)` display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 2rem; `;
+const ReportGrid = styled(motion.div)` display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem; margin-top: 2rem; `;
 const ReportCardContainer = styled(motion.div)` position: relative; `;
 const ReportCard = styled.button` height: 150px; width: 100%; border-radius: 25px; cursor: pointer; background: #FFFFFF; color: #1A2B4C; border: 1px solid rgba(0, 0, 0, 0.1); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05); display: flex; align-items: center; justify-content: center; text-align: center; padding: 2rem; font-size: 1.8rem; font-weight: 700; transition: transform 0.2s, box-shadow 0.2s; &:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); } `;
 const AddReportCard = styled(ReportCard)` border-style: dashed; color: #6c757d; `;
@@ -34,18 +34,20 @@ const ReportsPage = () => {
   const { user } = useAuth();
 
   const fetchYearlyReports = useCallback(async () => {
-    const q = query(collection(db, "yearlyReports"), orderBy("order", "desc"));
+    const q = query(collection(db, "yearlyReports"));
     const querySnapshot = await getDocs(q);
     const fetchedReports = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    fetchedReports.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
     setYearlyReports(fetchedReports);
   }, []);
 
   const fetchWingReports = useCallback(async () => {
     if (!selectedWing) return;
     const targetCollection = `${selectedWing}Reports`;
-    const q = query(collection(db, targetCollection), orderBy("order", "desc"));
+    const q = query(collection(db, targetCollection));
     const querySnapshot = await getDocs(q);
     const fetchedReports = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    fetchedReports.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
     setWingReports(fetchedReports);
   }, [selectedWing]);
 
