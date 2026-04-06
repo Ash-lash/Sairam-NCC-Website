@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import CounterLoader from '../components/common/CounterLoader';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
 import { downloadImage } from '../utils/downloadHelper';
+import OptimizedImage from '../components/common/OptimizedImage';
 
 // --- DASHBOARD STYLES ---
 
@@ -674,10 +675,12 @@ const AdminGalleryPage = () => {
                       transition={{ delay: i * 0.05 }}
                     >
                       <CardImage>
-                        <img
-                          src={getOptimizedUrl(album.coverImage, 400, 70)}
+                        <OptimizedImage
+                          src={album.coverImage}
+                          width={400}
+                          quality={70}
                           alt={album.name}
-                          loading="lazy"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                         <DownloadFab onClick={(e) => {
                           e.stopPropagation();
@@ -709,10 +712,12 @@ const AdminGalleryPage = () => {
                 <PhotoGrid>
                   {albumPhotos.map((photo, i) => (
                     <PhotoItem key={photo.id}>
-                      <img
-                        src={getOptimizedUrl(photo.imageUrl, 250, 40)}
+                      <OptimizedImage
+                        src={photo.imageUrl}
+                        width={250}
+                        quality={40}
                         alt="gallery"
-                        loading="lazy"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                       <PhotoOverlayBtn
                         onClick={() => downloadImage(photo.imageUrl, `gallery_${photo.id}`)}

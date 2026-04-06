@@ -18,8 +18,8 @@ const getDpr = () => {
     return clamp(window.devicePixelRatio || 1, 1, 2);
 };
 
-// Proxy is now OFF by default to maximize reliability — set REACT_APP_IMAGE_PROXY=on in env to enable
-const IMAGE_PROXY_ENABLED = process.env.REACT_APP_IMAGE_PROXY === 'on';
+// Proxy is now ON by default to ensure fast rendering. Set to 'off' in env if needed.
+const IMAGE_PROXY_ENABLED = process.env.REACT_APP_IMAGE_PROXY !== 'off';
 
 const isProxiableUrl = (url) => {
     if (!url) return false;

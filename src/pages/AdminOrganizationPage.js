@@ -6,6 +6,7 @@ import { db } from '../firebase';
 import { Save, Layout, BookOpen, User2, Globe, Command, Upload, Download } from 'lucide-react';
 import { downloadImage } from '../utils/downloadHelper';
 import { uploadFileToFirebaseStorage as uploadFile } from '../utils/firebaseStorage';
+import OptimizedImage from '../components/common/OptimizedImage';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -450,7 +451,12 @@ const AdminOrganizationPage = () => {
 
                           <PhotoPreview>
                             {personnel[id]?.imageUrl ? (
-                              <img src={personnel[id].imageUrl} alt="Preview" loading="lazy" />
+                              <OptimizedImage
+                                src={personnel[id].imageUrl}
+                                alt="Preview"
+                                width={300}
+                                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                              />
                             ) : (
                               <User2 size={40} />
                             )}

@@ -257,12 +257,11 @@ const ModalContent = styled.div`
 
 const ModalBanner = styled.div`
   height: 350px;
-  background: ${props => props.$imageUrl ? `url(${props.$imageUrl})` : 'linear-gradient(135deg, #FFBF00 0%, #FFD700 100%)'};
-  background-size: cover;
-  background-position: center;
+  background: #f8fafc;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 `;
 
 const CloseButton = styled.button`
@@ -314,7 +313,7 @@ const PosterContainer = styled(motion.div)`
   padding: 2rem;
 `;
 
-const FullPoster = styled.img`
+const FullPoster = styled(OptimizedImage)`
   max-width: 100%;
   max-height: 90vh;
   object-fit: contain;
@@ -527,11 +526,18 @@ const ScholarshipsPage = () => {
                                 <X size={24} />
                             </CloseButton>
                             <ModalBanner
-                                $imageUrl={selectedScholarship.posterUrl ? getOptimizedUrl(selectedScholarship.posterUrl, 1000, 85) : undefined}
                                 style={{ cursor: selectedScholarship.posterUrl ? 'pointer' : 'default' }}
                                 onClick={() => selectedScholarship.posterUrl && openImageViewer([selectedScholarship.posterUrl], 0)}
                             >
-                                {!selectedScholarship.posterUrl && (
+                                {selectedScholarship.posterUrl ? (
+                                    <OptimizedImage 
+                                      src={selectedScholarship.posterUrl} 
+                                      width={1000} 
+                                      quality={85} 
+                                      alt={selectedScholarship.name}
+                                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                ) : (
                                     <PlaceholderBanner style={{ width: '100%' }}>
                                         <Award size={80} />
                                     </PlaceholderBanner>
@@ -593,7 +599,12 @@ const ScholarshipsPage = () => {
                                             {selectedScholarship.groupMembers.map((member, idx) => (
                                                 <div key={idx} style={{ background: 'white', padding: '1.2rem', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
                                                     {member.photoUrl ? (
-                                                        <img src={getOptimizedUrl(member.photoUrl, 100, 80)} alt={member.name} style={{ width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover' }} />
+                                                        <OptimizedImage 
+                                                            src={member.photoUrl} 
+                                                            alt={member.name} 
+                                                            width={100} 
+                                                            style={{ width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover' }} 
+                                                        />
                                                     ) : (
                                                         <div style={{ width: '60px', height: '60px', borderRadius: '12px', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
                                                             <User size={24} />

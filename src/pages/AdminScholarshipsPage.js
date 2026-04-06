@@ -11,6 +11,7 @@ import { uploadFileToFirebaseStorage as uploadFile } from '../utils/firebaseStor
 import { getOptimizedUrl } from '../utils/imageOptimizer';
 import { downloadImage } from '../utils/downloadHelper';
 import SEO from '../components/common/SEO';
+import OptimizedImage from '../components/common/OptimizedImage';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -591,7 +592,13 @@ const AdminScholarshipsPage = () => {
               <TopCardSection>
                 <EventPoster>
                   {scholarship.posterUrl ? (
-                    <img src={getOptimizedUrl(scholarship.posterUrl, 200, 80)} alt={scholarship.name} />
+                    <OptimizedImage
+                      src={scholarship.posterUrl}
+                      alt={scholarship.name}
+                      width={200}
+                      quality={80}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                   ) : (
                     <Award size={40} color="#cbd5e1" />
                   )}
@@ -792,10 +799,11 @@ const AdminScholarshipsPage = () => {
                               />
                               <label htmlFor={`member-photo-${idx}`} style={{ cursor: 'pointer', width: '72px', height: '72px', borderRadius: '16px', border: '2px dashed #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#f8fafc', transition: 'all 0.2s' }}>
                                 {(member.photoUrl || memberFiles[idx]) ? (
-                                  <img
+                                  <OptimizedImage
                                     src={memberFiles[idx] ? URL.createObjectURL(memberFiles[idx]) : member.photoUrl}
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     alt="Preview"
+                                    width={100}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                   />
                                 ) : (
                                   <Upload size={24} color="#94a3b8" />
