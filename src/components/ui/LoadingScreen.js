@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion } from 'framer-motion';
-import OptimizedImage from '../common/OptimizedImage';
 
 import nccLogo from '../../assets/ncc-logo.svg';
 import armyLogo from '../../assets/army-logo.png';
@@ -57,12 +56,12 @@ const LoadingScreen = () => {
       <TopLeft /> <TopRight /> <BottomLeft /> <BottomRight />
       <Scene>
         <Cube exit={{ animation: 'none' }}>
-          <FrontFace custom="front" variants={faceVariants} exit="exit"><OptimizedImage src={armyLogo} alt="Army Wing" width={200} style={{ width: '100px', height: '100px', objectFit: 'contain', filter: 'drop-shadow(0 0 10px #fff)' }} /></FrontFace>
-          <BackFace custom="back" variants={faceVariants} exit="exit"><OptimizedImage src={nccLogo} alt="NCC" width={200} style={{ width: '100px', height: '100px', objectFit: 'contain', filter: 'drop-shadow(0 0 10px #fff)' }} /></BackFace>
-          <RightFace custom="right" variants={faceVariants} exit="exit"><OptimizedImage src={navyLogo} alt="Navy Wing" width={200} style={{ width: '100px', height: '100px', objectFit: 'contain', filter: 'drop-shadow(0 0 10px #fff)' }} /></RightFace>
-          <LeftFace custom="left" variants={faceVariants} exit="exit"><OptimizedImage src={airforceLogo} alt="Air Force Wing" width={200} style={{ width: '100px', height: '100px', objectFit: 'contain', filter: 'drop-shadow(0 0 10px #fff)' }} /></LeftFace>
-          <TopFace custom="top" variants={faceVariants} exit="exit"><OptimizedImage src={nccLogo} alt="NCC" width={200} style={{ width: '100px', height: '100px', objectFit: 'contain', filter: 'drop-shadow(0 0 10px #fff)' }} /></TopFace>
-          <BottomFace custom="bottom" variants={faceVariants} exit="exit"><OptimizedImage src={nccLogo} alt="NCC" width={200} style={{ width: '100px', height: '100px', objectFit: 'contain', filter: 'drop-shadow(0 0 10px #fff)' }} /></BottomFace>
+          <FrontFace custom="front" variants={faceVariants} exit="exit"><img src={armyLogo} alt="Army Wing" /></FrontFace>
+          <BackFace custom="back" variants={faceVariants} exit="exit"><img src={nccLogo} alt="NCC" /></BackFace>
+          <RightFace custom="right" variants={faceVariants} exit="exit"><img src={navyLogo} alt="Navy Wing" /></RightFace>
+          <LeftFace custom="left" variants={faceVariants} exit="exit"><img src={airforceLogo} alt="Air Force Wing" /></LeftFace>
+          <TopFace custom="top" variants={faceVariants} exit="exit"><img src={nccLogo} alt="NCC" /></TopFace>
+          <BottomFace custom="bottom" variants={faceVariants} exit="exit"><img src={nccLogo} alt="NCC" /></BottomFace>
         </Cube>
       </Scene>
       <LoadingText key={textIndex} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>

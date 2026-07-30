@@ -7,6 +7,7 @@ import { db } from '../firebase';
 import SEO from '../components/common/SEO';
 import CadetDetailModal from '../components/ui/CadetDetailModal';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
+import { prefetchList } from '../utils/mediaCache';
 import IndividualAchievementCard from '../components/achievements/IndividualAchievementCard';
 import GroupAchievementCard from '../components/achievements/GroupAchievementCard';
 
@@ -175,6 +176,26 @@ const AchievementsPage = () => {
       isGroup: true
     }));
   }, [filtered, sector]);
+
+  // Warm the service-worker image cache in the background once data is in.
+  // Done in idle time so it never competes with first paint of the cards.
+  useEffect(() => {
+    if (!displayData.length) return;
+
+    const urls = displayData
+      .map((a) => a.photo)
+      .filter(Boolean)
+      .map((u) => getOptimizedUrl(u, 800, 80));
+
+    const schedule = window.requestIdleCallback || ((cb) => setTimeout(cb, 400));
+    const handle = schedule(() => prefetchList(urls));
+
+    return () => {
+      if (window.cancelIdleCallback && typeof handle === 'number') {
+        window.cancelIdleCallback(handle);
+      }
+    };
+  }, [displayData]);
 
   return (
     <PageContainer>

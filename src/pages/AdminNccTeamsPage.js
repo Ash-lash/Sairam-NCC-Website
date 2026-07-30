@@ -8,7 +8,7 @@ import { Plus, Trash2, X, ChevronLeft, Home, Zap, ShieldCheck, Edit2, Download }
 import { uploadFile } from '../utils/uploadHelper';
 import SEO from '../components/common/SEO';
 import { downloadImage } from '../utils/downloadHelper';
-import OptimizedImage from '../common/OptimizedImage';
+import OptimizedImage from '../components/common/OptimizedImage';
 
 const float = keyframes`
   0% { transform: translateY(0px); }

@@ -1,60 +1,132 @@
 /* eslint-disable no-restricted-globals */
 
-// This service worker intercepts image requests and stores them in the Cache API (Cache Memory).
-// This provides an "Amazon-like" asynchronous retrieval experience across all devices.
+/**
+ * NCC Website Service Worker — image cache layer.
+ *
+ * Runs asynchronously between the page and the network. All image requests
+ * (Firebase Storage, wsrv.nl CDN, local assets) are intercepted and served
+ * with a stale-while-revalidate strategy:
+ *   - If the image is already in the cache, return it immediately (instant).
+ *   - In parallel, fetch a fresh copy in the background and update the cache
+ *     for the next visit. The user never waits for the revalidation.
+ *
+ * This is the same pattern Amazon / Flipkart / Apple use to make repeat
+ * views feel instantaneous, and the cache lives with the website itself
+ * (browser Cache Storage), not in Firebase.
+ */
 
-const CACHE_NAME = 'ncc-media-v3'; // Versioned cache for reliable updates
-const IMAGE_TYPES = ['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif', 'avif'];
+const SW_VERSION = 'v5-2026-04';
+const IMAGE_CACHE = `ncc-images-${SW_VERSION}`;
+const MAX_IMAGE_ENTRIES = 300;
 
-self.addEventListener('install', (event) => {
+const IMAGE_EXT_RE = /\.(png|jpe?g|svg|webp|gif|avif|bmp|ico)(\?.*)?$/i;
+
+const isImageRequest = (request, url) => {
+  if (request.destination === 'image') return true;
+  const href = url.href;
+  if (
+    href.includes('wsrv.nl') ||
+    href.includes('firebasestorage') ||
+    href.includes('googleusercontent') ||
+    href.includes('cloudinary')
+  ) {
+    return true;
+  }
+  return IMAGE_EXT_RE.test(url.pathname);
+};
+
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys.filter((k) => k !== IMAGE_CACHE).map((k) => caches.delete(k))
       );
-    })
+      await self.clients.claim();
+    })()
   );
-  self.clients.claim();
 });
 
+// Keep the image cache bounded — oldest entries get evicted first.
+const trimCache = async (cacheName, maxEntries) => {
+  try {
+    const cache = await caches.open(cacheName);
+    const keys = await cache.keys();
+    if (keys.length <= maxEntries) return;
+    const overflow = keys.length - maxEntries;
+    for (let i = 0; i < overflow; i++) {
+      await cache.delete(keys[i]);
+    }
+  } catch (_) { /* best-effort */ }
+};
+
+const staleWhileRevalidate = async (request) => {
+  const cache = await caches.open(IMAGE_CACHE);
+  const cached = await cache.match(request);
+
+  const networkFetch = fetch(request)
+    .then((response) => {
+      if (response && response.status === 200) {
+        // Clone before the response body gets consumed by the return path.
+        const clone = response.clone();
+        cache.put(request, clone)
+          .then(() => trimCache(IMAGE_CACHE, MAX_IMAGE_ENTRIES))
+          .catch(() => {});
+      }
+      return response;
+    })
+    .catch(() => cached);
+
+  // Return cached immediately if available, otherwise wait on network.
+  return cached || networkFetch;
+};
+
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-  
-  // Intercept all images and optimized proxy URLs
-  const isImage = IMAGE_TYPES.some(type => url.pathname.toLowerCase().endsWith(`.${type}`)) || 
-                  url.href.includes('firebasestorage') || 
-                  url.href.includes('wsrv.nl');
+  const { request } = event;
+  if (request.method !== 'GET') return;
 
-  if (event.request.method === 'GET' && isImage) {
-    event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        // Return from cache immediately if present (Synchronous feel)
-        if (cachedResponse) {
-          return cachedResponse;
-        }
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch (_) {
+    return;
+  }
 
-        // Otherwise fetch and cache for next time (Asynchronous Process)
-        return fetch(event.request).then((response) => {
-          if (!response || response.status !== 200 || response.type !== 'basic' && response.type !== 'cors') {
-            return response;
-          }
+  if (isImageRequest(request, url)) {
+    event.respondWith(staleWhileRevalidate(request));
+  }
+});
 
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+// The app can ask the SW to warm the cache in the background.
+// The page never blocks on this — it's pure fire-and-forget.
+self.addEventListener('message', (event) => {
+  if (!event.data) return;
 
-          return response;
-        }).catch(() => {
-            // Fallback for offline or network error
-            return new Response('Network error', { status: 404 });
-        });
-      })
+  if (event.data.type === 'PREFETCH_IMAGES' && Array.isArray(event.data.urls)) {
+    const urls = event.data.urls.filter(Boolean);
+    event.waitUntil(
+      (async () => {
+        const cache = await caches.open(IMAGE_CACHE);
+        await Promise.allSettled(
+          urls.map(async (u) => {
+            try {
+              const hit = await cache.match(u);
+              if (hit) return;
+              const resp = await fetch(u, { mode: 'cors', credentials: 'omit' });
+              if (resp && resp.status === 200) await cache.put(u, resp);
+            } catch (_) { /* ignore */ }
+          })
+        );
+        await trimCache(IMAGE_CACHE, MAX_IMAGE_ENTRIES);
+      })()
     );
+  }
+
+  if (event.data.type === 'CLEAR_IMAGE_CACHE') {
+    event.waitUntil(caches.delete(IMAGE_CACHE));
   }
 });

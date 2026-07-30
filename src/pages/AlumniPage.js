@@ -8,6 +8,7 @@ import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import SEO from '../components/common/SEO';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
+import { prefetchList } from '../utils/mediaCache';
 import OptimizedImage from '../components/common/OptimizedImage';
 
 
@@ -318,6 +319,15 @@ const AlumniPage = () => {
   const canSeePrivate = isAdmin || isAlumniManager;
 
   useEffect(() => { fetchAlumni(); }, []);
+
+  // Warm the service-worker image cache in the background.
+  useEffect(() => {
+    if (!alumni.length) return;
+    const urls = alumni.map(a => a.photoUrl).filter(Boolean).map(u => getOptimizedUrl(u, 400, 75));
+    const schedule = window.requestIdleCallback || ((cb) => setTimeout(cb, 400));
+    const handle = schedule(() => prefetchList(urls));
+    return () => { if (window.cancelIdleCallback && typeof handle === 'number') window.cancelIdleCallback(handle); };
+  }, [alumni]);
 
   const fetchAlumni = async () => {
     try {

@@ -24,8 +24,9 @@ const VanguardContainer = styled(motion.div)`
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.8) 100%);
+    background: radial-gradient(circle at center, transparent 55%, rgba(0,0,0,0.55) 100%);
     z-index: 2;
+    pointer-events: none;
   }
 `;
 
@@ -33,13 +34,13 @@ const SignaturePhoto = styled(motion.div)`
   position: absolute;
   inset: 0;
   z-index: 1;
-  
+
   img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: top center;
-    filter: saturate(1.2) contrast(1.1);
+    object-position: center 25%;
+    filter: saturate(1.1) contrast(1.05);
   }
 `;
 
@@ -51,7 +52,7 @@ const SpotlightOverlay = styled(motion.div)`
   display: flex;
   flex-direction: column;
   justify-content: flex-end; /* ALIGN TO BOTTOM AS ORIGINALLY INTENDED BUT CLEANER */
-  background: linear-gradient(to top, rgba(2, 6, 23, 0.95), transparent 60%);
+  background: linear-gradient(to top, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.6) 30%, transparent 55%);
 `;
 
 const RankStripe = styled.div`
@@ -219,11 +220,11 @@ const IndividualAchievementCard = ({ item, onReportClick }) => {
             quality={85}
             alt={item.name}
             objectFit="cover"
-            objectPosition="top center"
+            objectPosition="center 25%"
             style={{
               width: '100%',
               height: '100%',
-              filter: isHovered ? 'saturate(1.5) brightness(0.8)' : 'saturate(1.2) brightness(0.7)'
+              filter: isHovered ? 'saturate(1.3) brightness(1)' : 'saturate(1.15) brightness(0.95)'
             }}
           />
         </SignaturePhoto>

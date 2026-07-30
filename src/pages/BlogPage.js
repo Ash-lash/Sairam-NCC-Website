@@ -23,6 +23,8 @@ import { useAuth } from '../contexts/AuthContext';
 import nccLogo from '../assets/ncc-logo.svg';
 import OptimizedImage from '../components/common/OptimizedImage';
 import SEO from '../components/common/SEO';
+import { getOptimizedUrl } from '../utils/imageOptimizer';
+import { prefetchList } from '../utils/mediaCache';
 
 const PageContainer = styled.div`
   min-height: 100vh;
@@ -324,6 +326,17 @@ const BlogPage = () => {
   useEffect(() => {
     fetchBlogs();
   }, []);
+
+  // Warm the service-worker image cache for blog cover + author photos.
+  useEffect(() => {
+    if (!blogs.length) return;
+    const covers = blogs.map(b => b.imageUrl).filter(Boolean).map(u => getOptimizedUrl(u, 600, 85));
+    const authors = blogs.map(b => b.authorPhotoUrl).filter(Boolean).map(u => getOptimizedUrl(u, 40, 60));
+    const urls = [...covers, ...authors];
+    const schedule = window.requestIdleCallback || ((cb) => setTimeout(cb, 400));
+    const handle = schedule(() => prefetchList(urls));
+    return () => { if (window.cancelIdleCallback && typeof handle === 'number') window.cancelIdleCallback(handle); };
+  }, [blogs]);
 
   const fetchBlogs = async () => {
     try {

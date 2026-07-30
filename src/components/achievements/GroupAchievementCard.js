@@ -23,8 +23,9 @@ const SquadVanguardContainer = styled(motion.div)`
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at center, transparent 20%, rgba(0,0,0,0.85) 100%);
+    background: radial-gradient(circle at center, transparent 55%, rgba(0,0,0,0.55) 100%);
     z-index: 2;
+    pointer-events: none;
   }
 `;
 
@@ -43,7 +44,7 @@ const SpotlightOverlay = styled(motion.div)`
   flex-direction: column;
   justify-content: flex-end; /* CONSISTENT WITH INDIVIDUAL CARD */
   gap: 2rem;
-  background: linear-gradient(to top, rgba(2, 6, 23, 0.95), transparent 70%);
+  background: linear-gradient(to top, rgba(2, 6, 23, 0.95) 0%, rgba(2, 6, 23, 0.6) 30%, transparent 55%);
 `;
 
 const RankStripe = styled.div`
@@ -214,8 +215,8 @@ const GroupAchievementCard = ({ item, onReportClick }) => {
             style={{
               width: '100%',
               height: '100%',
-              objectPosition: 'center 15%',
-              filter: isHovered ? 'brightness(0.9) saturate(1.2)' : 'brightness(0.8) saturate(1)'
+              objectPosition: 'center 30%',
+              filter: isHovered ? 'brightness(1) saturate(1.2)' : 'brightness(0.95) saturate(1.1)'
             }}
           />
         </SquadSignaturePhoto>

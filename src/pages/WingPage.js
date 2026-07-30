@@ -33,6 +33,7 @@ import EditBatchModal from '../components/admin/EditBatchModal';
 import OptimizedImage from '../components/common/OptimizedImage';
 import SEO from '../components/common/SEO';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
+import { prefetchList } from '../utils/mediaCache';
 import { getWingCandidates, toCanonicalWing } from '../utils/wingUtils';
 import * as XLSX from 'xlsx';
 import { downloadImage } from '../utils/downloadHelper';
@@ -1139,6 +1140,22 @@ const WingPage = () => {
     fetchSlides();
   }, [wingCategoryForQuery]); // Re-fetch if wing changes
 
+  // Warm the SW cache for every slide (main + blur variants) so switching
+  // between slides is instant even on the first visit.
+  useEffect(() => {
+    if (!slides.length) return;
+    const urls = [];
+    slides.forEach((s) => {
+      if (!s.imageUrl) return;
+      urls.push(getOptimizedUrl(s.imageUrl, 1200, 70));
+      urls.push(getOptimizedUrl(s.imageUrl, 400, 20));
+      urls.push(getOptimizedUrl(s.imageUrl, 1920, 80));
+    });
+    const schedule = window.requestIdleCallback || ((cb) => setTimeout(cb, 400));
+    const handle = schedule(() => prefetchList(urls));
+    return () => { if (window.cancelIdleCallback && typeof handle === 'number') window.cancelIdleCallback(handle); };
+  }, [slides]);
+
 
 
   // Slideshow next/prev logic
@@ -1287,6 +1304,19 @@ const WingPage = () => {
       setCadetsByRank({}); // Clear cadets when no batch is selected
     }
   }, [selectedBatch, fetchCadets, refreshKey]);
+
+  // Warm the service-worker image cache for all cadet photos in the background.
+  useEffect(() => {
+    const allCadets = Object.values(cadetsByRank).flat();
+    if (!allCadets.length) return;
+    const urls = allCadets
+      .map(c => c.photoURL || c.photoUrl || c.imageUrl || c.image || c.profileUrl)
+      .filter(Boolean)
+      .map(u => getOptimizedUrl(u, 400, 75));
+    const schedule = window.requestIdleCallback || ((cb) => setTimeout(cb, 400));
+    const handle = schedule(() => prefetchList(urls));
+    return () => { if (window.cancelIdleCallback && typeof handle === 'number') window.cancelIdleCallback(handle); };
+  }, [cadetsByRank]);
 
   // Reset selectedBatch and scroll to top when wingType changes
   useEffect(() => {

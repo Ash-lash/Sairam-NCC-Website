@@ -8,6 +8,8 @@ import { ArrowLeft, ChevronDown, ChevronRight, X, Folder, Image as ImageIcon } f
 import SEO from '../components/common/SEO';
 import PhotoSlideshow from '../components/sections/PhotoSlideshow';
 import OptimizedImage from '../components/common/OptimizedImage';
+import { getOptimizedUrl } from '../utils/imageOptimizer';
+import { prefetchList } from '../utils/mediaCache';
 
 // --- STYLING ---
 
@@ -215,6 +217,23 @@ const GalleryPage = () => {
   const [slideshowList, setSlideshowList] = useState([]);
 
   useEffect(() => { fetchAlbums(); }, []);
+
+  // Warm the service-worker image cache in the background once data is in.
+  useEffect(() => {
+    if (!albums.length) return;
+    const urls = albums.map(a => a.coverImage).filter(Boolean).map(u => getOptimizedUrl(u, 500, 70));
+    const schedule = window.requestIdleCallback || ((cb) => setTimeout(cb, 400));
+    const handle = schedule(() => prefetchList(urls));
+    return () => { if (window.cancelIdleCallback && typeof handle === 'number') window.cancelIdleCallback(handle); };
+  }, [albums]);
+
+  useEffect(() => {
+    if (!photos.length) return;
+    const urls = photos.map(p => p.imageUrl).filter(Boolean).map(u => getOptimizedUrl(u, 450, 60));
+    const schedule = window.requestIdleCallback || ((cb) => setTimeout(cb, 400));
+    const handle = schedule(() => prefetchList(urls));
+    return () => { if (window.cancelIdleCallback && typeof handle === 'number') window.cancelIdleCallback(handle); };
+  }, [photos]);
 
   const fetchAlbums = async () => {
     try {
