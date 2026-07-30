@@ -56,15 +56,83 @@ const Skeleton = styled.div`
 // ─── Hero ───
 const HeroSection = styled.section`
   background: linear-gradient(160deg, ${NCC.navy} 0%, ${NCC.navyLight} 60%, #1a3a6e 100%);
-  padding: 140px 2rem 80px; text-align: center; position: relative; overflow: hidden;
+  padding: 140px 2rem 80px; position: relative; overflow: hidden;
   &::before { content:''; position:absolute; inset:0; background: radial-gradient(circle at 20% 80%, rgba(255,191,0,0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.05) 0%, transparent 50%); }
   &::after { content:''; position:absolute; bottom:-2px; left:0; right:0; height:80px; background:${NCC.bg}; clip-path:ellipse(55% 100% at 50% 100%); }
 `;
-const HeroContent = styled.div`max-width:800px; margin:0 auto; position:relative; z-index:2;`;
+const HeroGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 3rem;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+  
+  @media(max-width: 992px) {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 2.5rem;
+  }
+`;
+const HeroContent = styled.div`
+  text-align: left;
+  @media(max-width: 992px) {
+    text-align: center;
+  }
+`;
 const HeroBadge = styled(motion.div)`display:inline-flex; align-items:center; gap:0.5rem; background:rgba(255,191,0,0.15); border:1px solid rgba(255,191,0,0.3); padding:0.5rem 1.2rem; border-radius:50px; color:${NCC.gold}; font-size:0.85rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:1.5rem;`;
-const HeroTitle = styled(motion.h1)`font-size:3.5rem; font-weight:900; color:white; margin-bottom:1.25rem; line-height:1.15; span{background:linear-gradient(135deg,${NCC.gold},${NCC.goldLight}); -webkit-background-clip:text; -webkit-text-fill-color:transparent;} @media(max-width:768px){font-size:2.2rem;}`;
-const HeroSub = styled(motion.p)`font-size:1.15rem; color:rgba(255,255,255,0.7); max-width:600px; margin:0 auto 2.5rem; line-height:1.7;`;
-const StatsRow = styled(motion.div)`display:flex; justify-content:center; gap:3rem; flex-wrap:wrap; @media(max-width:600px){gap:1.5rem;}`;
+const HeroTitle = styled(motion.h1)`font-size:3.5rem; font-weight:900; color:white; margin-bottom:1.25rem; line-height:1.15; span{background:linear-gradient(135deg,${NCC.gold},${NCC.goldLight}); -webkit-background-clip:text; -webkit-text-fill-color:transparent;} @media(max-width:992px){font-size:2.8rem;} @media(max-width:768px){font-size:2.2rem;}`;
+const HeroSub = styled(motion.p)`font-size:1.15rem; color:rgba(255,255,255,0.7); max-width:600px; margin-bottom:2.5rem; line-height:1.7; @media(max-width:992px){margin:0 auto 2.5rem;}`;
+const StatsRow = styled(motion.div)`display:flex; justify-content:flex-start; gap:3rem; flex-wrap:wrap; @media(max-width:992px){justify-content:center;} @media(max-width:600px){gap:1.5rem;}`;
+
+const MentorCTACard = styled(motion.div)`
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  padding: 2.2rem;
+  text-align: left;
+  color: white;
+  box-shadow: 0 20px 45px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50px; right: -50px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(255,191,0,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0;
+    color: ${NCC.gold};
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  p {
+    font-size: 0.95rem;
+    color: rgba(255,255,255,0.8);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  @media(max-width: 992px) {
+    max-width: 450px;
+    margin: 0 auto;
+  }
+`;
 const StatItem = styled.div`text-align:center; .number{font-size:2.5rem; font-weight:900; color:${NCC.gold}; line-height:1; margin-bottom:0.3rem;} .label{font-size:0.85rem; color:rgba(255,255,255,0.6); font-weight:600; text-transform:uppercase; letter-spacing:1px;}`;
 
 // ─── Main ───
@@ -370,23 +438,51 @@ const AlumniPage = () => {
 
       <HeroSection>
         <Particles />
-        <HeroContent>
-          <HeroBadge initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <GraduationCap size={16} /> Alumni Network
-          </HeroBadge>
-          <HeroTitle initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.7 }}>
-            Our <span>Distinguished</span> Sairam<br />NCC Alumni
-          </HeroTitle>
-          <HeroSub initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
-            Honouring the cadets who served with pride and continue to make a mark in every field.
-          </HeroSub>
-          <StatsRow initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
-            <StatItem><div className="number">{stats.total}</div><div className="label">Alumni</div></StatItem>
-            <StatItem><div className="number">{stats.army}</div><div className="label">Army</div></StatItem>
-            <StatItem><div className="number">{stats.navy}</div><div className="label">Navy</div></StatItem>
-            <StatItem><div className="number">{stats.air}</div><div className="label">Air</div></StatItem>
-          </StatsRow>
-        </HeroContent>
+        <HeroGrid>
+          <HeroContent>
+            <HeroBadge initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              <GraduationCap size={16} /> Alumni Network
+            </HeroBadge>
+            <HeroTitle initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.7 }}>
+              Our <span>Distinguished</span> Sairam<br />NCC Alumni
+            </HeroTitle>
+            <HeroSub initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+              Honouring the cadets who served with pride and continue to make a mark in every field.
+            </HeroSub>
+            <StatsRow initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+              <StatItem><div className="number">{stats.total}</div><div className="label">Alumni</div></StatItem>
+              <StatItem><div className="number">{stats.army}</div><div className="label">Army</div></StatItem>
+              <StatItem><div className="number">{stats.navy}</div><div className="label">Navy</div></StatItem>
+              <StatItem><div className="number">{stats.air}</div><div className="label">Air</div></StatItem>
+            </StatsRow>
+          </HeroContent>
+
+          <MentorCTACard 
+            initial={{ opacity: 0, x: 30 }} 
+            animate={{ opacity: 1, x: 0 }} 
+            transition={{ delay: 0.6, duration: 0.6 }}
+          >
+            <h3><Award size={22} /> Become a Mentor</h3>
+            <p>
+              Share your engineering skills, professional expertise, or SSB/defence preparation path with young cadets. 
+            </p>
+            <CTAButton 
+              onClick={() => navigate('/become-mentor')} 
+              whileHover={{ scale: 1.05 }} 
+              whileTap={{ scale: 0.98 }}
+              style={{ 
+                fontSize: '0.95rem', 
+                padding: '0.75rem 1.5rem', 
+                width: '100%', 
+                justifyContent: 'center', 
+                marginTop: '0.5rem',
+                boxShadow: 'none'
+              }}
+            >
+              Register as Mentor <ArrowRight size={18} />
+            </CTAButton>
+          </MentorCTACard>
+        </HeroGrid>
       </HeroSection>
 
       <MainContent>

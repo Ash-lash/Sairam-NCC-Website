@@ -33,6 +33,7 @@ const AdminSlideshowPage = lazy(() => import('./pages/AdminSlideshowPage'));
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const AlumniLoginPage = lazy(() => import('./pages/AlumniLoginPage'));
 const AlumniProfilePage = lazy(() => import('./pages/AlumniProfilePage'));
+const BecomeMentorPage = lazy(() => import('./pages/BecomeMentorPage'));
 const AdminGalleryPage = lazy(() => import('./pages/AdminGalleryPage'));
 const GalleryPage = lazy(() => import('./pages/GalleryPage'));
 const AboutNCCPage = lazy(() => import('./pages/AboutNCCPage'));
@@ -127,6 +128,7 @@ function App() {
               <Route path="/alumni" element={<AlumniPage />} />
               <Route path="/alumni-login" element={<AlumniLoginPage />} />
               <Route path="/alumni/profile" element={<AlumniProfilePage />} />
+              <Route path="/become-mentor" element={<BecomeMentorPage />} />
               <Route path="/events" element={<EventsPage />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/wing/:wingType" element={<WingPage />} />

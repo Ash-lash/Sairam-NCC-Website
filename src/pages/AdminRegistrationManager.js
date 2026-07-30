@@ -367,6 +367,11 @@ const AdminRegistrationManager = () => {
   const [syncing, setSyncing] = useState(false);
   const [showScriptModal, setShowScriptModal] = useState(false);
 
+  // Become a Mentor Configuration
+  const [sheetUrlMentor, setSheetUrlMentor] = useState('');
+  const [webhookUrlMentor, setWebhookUrlMentor] = useState('');
+  const [syncingMentor, setSyncingMentor] = useState(false);
+
   // Option 2: Mass Cadet Import Configuration
   const [importing, setImporting] = useState(false);
   const [selectedWing, setSelectedWing] = useState('Army');
@@ -377,6 +382,8 @@ const AdminRegistrationManager = () => {
   // Data State
   const [registrations, setRegistrations] = useState([]);
   const [selectedIds, setSelectedIds] = useState([]);
+  const [mentorRegistrations, setMentorRegistrations] = useState([]);
+  const [selectedMentorIds, setSelectedMentorIds] = useState([]);
 
   // Processing States
   const [isProcessing, setIsProcessing] = useState(false);
@@ -392,6 +399,7 @@ const AdminRegistrationManager = () => {
     fetchConfig();
     fetchCadets();
     fetchRegistrations();
+    fetchMentorRegistrations();
   }, []);
 
   const [cadets, setCadets] = useState([]);
@@ -413,6 +421,13 @@ const AdminRegistrationManager = () => {
         setWebhookUrl(data.webhookUrl || '');
         setFormHeaders(data.headers || []);
       }
+
+      const docSnapMentor = await getDoc(doc(db, 'config', 'mentor_registration'));
+      if (docSnapMentor.exists()) {
+        const dataM = docSnapMentor.data();
+        setSheetUrlMentor(dataM.sheetUrl || '');
+        setWebhookUrlMentor(dataM.webhookUrl || '');
+      }
     } catch (err) { console.error(err); }
   };
 
@@ -421,6 +436,14 @@ const AdminRegistrationManager = () => {
       const q = query(collection(db, 'registrations'), orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(q);
       setRegistrations(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (err) { console.error(err); }
+  };
+
+  const fetchMentorRegistrations = async () => {
+    try {
+      const q = query(collection(db, 'mentor_registrations'), orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      setMentorRegistrations(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch (err) { console.error(err); }
   };
 
@@ -436,6 +459,51 @@ const AdminRegistrationManager = () => {
       alert("Registration Configuration Saved!\nYour form has been updated with " + formHeaders.length + " fields.");
     } catch (err) { alert("Error saving configuration."); }
     finally { setSyncing(false); }
+  };
+
+  const handleSaveMentorConfig = async () => {
+    try {
+      setSyncingMentor(true);
+      await setDoc(doc(db, 'config', 'mentor_registration'), {
+        sheetUrl: sheetUrlMentor,
+        webhookUrl: webhookUrlMentor,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      alert("Mentor Registration Configuration Saved!");
+    } catch (err) { alert("Error saving configuration."); }
+    finally { setSyncingMentor(false); }
+  };
+
+  const exportMentorData = () => {
+    if (!mentorRegistrations.length) return alert("No mentor registrations to export.");
+    const exportData = mentorRegistrations.map(mentor => ({
+      'Full Name': mentor.fullName || 'N/A',
+      'Primary Email': mentor.primaryEmail || 'N/A',
+      'Phone Number': mentor.phoneNumber || 'N/A',
+      'Alternate Phone': mentor.alternatePhone || 'N/A',
+      'Secondary Email': mentor.secondaryEmail || 'N/A',
+      'LinkedIn URL': mentor.linkedinUrl || 'N/A',
+      'Current Position': mentor.designation || 'N/A',
+      'Company Name': mentor.companyName || 'N/A',
+      'Current Location': mentor.currentLocation || 'N/A',
+      'Years of Experience': mentor.yearsOfExperience || 'N/A',
+      'Industry Domain': mentor.industryDomain || 'N/A',
+      'Company Size': mentor.companySize || 'N/A',
+      'Company Website': mentor.companyWebsite || 'N/A',
+      'Sairam Alumnus': mentor.isSairamAlumni || 'N/A',
+      'Batch Years': mentor.batchYears || 'N/A',
+      'NCC Wing': mentor.wingType || 'N/A',
+      'Department': mentor.department || 'N/A',
+      'Sairam Parent': mentor.isSairamParent || 'N/A',
+      'Willingness to Mentor': mentor.willingnessToMentor || 'N/A',
+      'Technical/Engineering Skills': (mentor.technicalSkills || []).join(', ') || 'N/A',
+      'NCC/Defence Exam Skills': (mentor.defenceSkills || []).join(', ') || 'N/A',
+      'General Domain Expertise': (mentor.domainExpertise || []).join(', ') || 'N/A'
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "NCC Mentors");
+    XLSX.writeFile(wb, "NCC_Mentor_Registrations.xlsx");
   };
 
   const handleHeaderUpload = (e) => {
@@ -621,24 +689,29 @@ const AdminRegistrationManager = () => {
     <PageContainer>
       <Header>
         <h1><ShieldCheck size={40} color="#1a2b4c" /> Registration Control Center</h1>
-        <PrimaryButton onClick={() => {
-          const exportData = cadets.map(cadet => ({
-            'Wing': cadet.Wing || 'N/A',
-            'Batch': cadet.Batch || 'N/A',
-            'Rank': cadet.rank || 'N/A',
-            'Name': cadet.Name || 'N/A',
-            'Regimental Number': cadet.regimentalNo || 'N/A',
-            'Department': cadet.dept || 'N/A',
-            'Section': cadet.section || 'N/A',
-            'Student ID': cadet.secID || 'N/A',
-            'Dossier': cadet.pdfURL || 'N/A',
-            'Photo Link': cadet.photoURL || 'N/A'
-          }));
-          const ws = XLSX.utils.json_to_sheet(exportData);
-          XLSX.writeFile(XLSX.utils.book_new(XLSX.utils.book_append_sheet(null, ws, "NCC")), "NCC_Cadet_Database_Complete.xlsx");
-        }}>
-          <Download size={20} /> Export Website Data
-        </PrimaryButton>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <PrimaryButton onClick={() => {
+            const exportData = cadets.map(cadet => ({
+              'Wing': cadet.Wing || 'N/A',
+              'Batch': cadet.Batch || 'N/A',
+              'Rank': cadet.rank || 'N/A',
+              'Name': cadet.Name || 'N/A',
+              'Regimental Number': cadet.regimentalNo || 'N/A',
+              'Department': cadet.dept || 'N/A',
+              'Section': cadet.section || 'N/A',
+              'Student ID': cadet.secID || 'N/A',
+              'Dossier': cadet.pdfURL || 'N/A',
+              'Photo Link': cadet.photoURL || 'N/A'
+            }));
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            XLSX.writeFile(XLSX.utils.book_new(XLSX.utils.book_append_sheet(null, ws, "NCC")), "NCC_Cadet_Database_Complete.xlsx");
+          }}>
+            <Download size={20} /> Export Cadets Excel
+          </PrimaryButton>
+          <PrimaryButton variant="success" onClick={exportMentorData}>
+            <Download size={20} /> Export Mentors Excel
+          </PrimaryButton>
+        </div>
       </Header>
 
       <SectionGrid>
@@ -683,6 +756,34 @@ const AdminRegistrationManager = () => {
 
           <PrimaryButton onClick={handleSaveOption1} variant="success" disabled={syncing} style={{ marginTop: 'auto' }}>
             {syncing ? <RefreshCw className="animate-spin" /> : <ShieldCheck />} Confirm & Set Link
+          </PrimaryButton>
+        </Card>
+
+        {/* BECOME A MENTOR CONFIGURATION */}
+        <Card>
+          <OptionTag color="#d97706">Mentor Form</OptionTag>
+          <Title><LinkIcon size={28} color="#d97706" /> Become a Mentor Form Link</Title>
+          <Description>
+            Whenever an alumnus registers as a mentor, save the details to your Excel sheet. Set your Google Sheet and script link here.
+          </Description>
+
+          <InputGroup>
+            <label>Public Mentor Form Sync (Google Sheet URL)</label>
+            <UrlInput value={sheetUrlMentor} onChange={(e) => setSheetUrlMentor(e.target.value)} placeholder="https://docs.google.com/..." />
+          </InputGroup>
+
+          <InputGroup style={{ marginBottom: '2.5rem' }}>
+            <label>Direct Save Hook (Web App Script)</label>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <UrlInput value={webhookUrlMentor} onChange={(e) => setWebhookUrlMentor(e.target.value)} placeholder="https://script.google.com/..." />
+              <ActionButton onClick={() => setShowScriptModal(true)} title="Setup Help">
+                <Settings size={20} />
+              </ActionButton>
+            </div>
+          </InputGroup>
+
+          <PrimaryButton onClick={handleSaveMentorConfig} variant="success" disabled={syncingMentor} style={{ marginTop: 'auto' }}>
+            {syncingMentor ? <RefreshCw className="animate-spin" /> : <ShieldCheck />} Confirm & Set Mentor Link
           </PrimaryButton>
         </Card>
 
@@ -787,6 +888,73 @@ const AdminRegistrationManager = () => {
                 </tr>
               )) : (
                 <tr><td colSpan={7} style={{ textAlign: 'center', padding: '5rem', color: '#94a3b8' }}>No records in database.</td></tr>
+              )}
+            </tbody>
+          </Table>
+        </TableContainer>
+      </TableCard>
+
+      {/* CADET MENTOR DATABASE VIEW */}
+      <TableCard style={{ marginTop: '3rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
+          <div>
+            <Title style={{ marginBottom: '0.5rem' }}><Users size={28} /> Website Cadet Mentor Database</Title>
+            <p style={{ color: '#64748b' }}>Total Mentors Count: <b>{mentorRegistrations.length}</b></p>
+          </div>
+          {selectedMentorIds.length > 0 && (
+            <PrimaryButton variant="danger" onClick={async () => {
+              if (window.confirm(`Delete ${selectedMentorIds.length} mentors permanently?`)) {
+                const b = writeBatch(db);
+                selectedMentorIds.forEach(id => b.delete(doc(db, 'mentor_registrations', id)));
+                await b.commit();
+                fetchMentorRegistrations();
+                setSelectedMentorIds([]);
+              }
+            }}>Delete Selected ({selectedMentorIds.length})</PrimaryButton>
+          )}
+        </div>
+
+        <TableContainer>
+          <Table>
+            <thead>
+              <tr>
+                <th style={{ width: '40px' }}><Checkbox onClick={() => setSelectedMentorIds(selectedMentorIds.length === mentorRegistrations.length ? [] : mentorRegistrations.map(r => r.id))} checked={selectedMentorIds.length === mentorRegistrations.length && mentorRegistrations.length > 0}>{selectedMentorIds.length === mentorRegistrations.length && mentorRegistrations.length > 0 ? <CheckSquare size={18} /> : <Square size={18} />}</Checkbox></th>
+                <th>Mentor Name</th>
+                <th>Designation / Company</th>
+                <th>Email / Phone</th>
+                <th>Willingness</th>
+                <th>Domain Expertise</th>
+                <th style={{ textAlign: 'center' }}>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mentorRegistrations.length > 0 ? mentorRegistrations.map((reg) => (
+                <tr key={reg.id}>
+                  <td><Checkbox onClick={() => setSelectedMentorIds(p => p.includes(reg.id) ? p.filter(i => i !== reg.id) : [...p, reg.id])} checked={selectedMentorIds.includes(reg.id)}>{selectedMentorIds.includes(reg.id) ? <CheckSquare size={18} /> : <Square size={18} />}</Checkbox></td>
+                  <td style={{ fontWeight: 'bold' }}>{reg.fullName || '-'}</td>
+                  <td>
+                    <div>{reg.designation || '-'}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{reg.companyName || '-'}</div>
+                  </td>
+                  <td>
+                    <div>{reg.primaryEmail || '-'}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{reg.phoneNumber || '-'}</div>
+                  </td>
+                  <td><CardTag color="#d97706" style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem', margin: 0, background: '#fffbeb' }}>{reg.willingnessToMentor || '-'}</CardTag></td>
+                  <td style={{ fontSize: '0.85rem' }}>{(reg.domainExpertise || []).join(', ') || '-'}</td>
+                  <td style={{ textAlign: 'center' }}>
+                    <ActionButton variant="danger" onClick={async () => {
+                      if(window.confirm('Delete this mentor permanently?')) {
+                        await deleteDoc(doc(db, 'mentor_registrations', reg.id));
+                        fetchMentorRegistrations();
+                      }
+                    }}>
+                      <Trash2 size={16} />
+                    </ActionButton>
+                  </td>
+                </tr>
+              )) : (
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '5rem', color: '#94a3b8' }}>No mentor records in database.</td></tr>
               )}
             </tbody>
           </Table>

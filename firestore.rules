@@ -24,6 +24,12 @@ service cloud.firestore {
       allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
+    // Mentor registrations
+    match /mentor_registrations/{regId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
     // Blogs Public Interactions
     match /blogs/{blogId} {
       // Allow update if only views and/or likes are being modified
