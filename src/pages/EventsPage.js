@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, MapPin, Clock, X, ZoomIn, ZoomOut, Download, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Calendar, MapPin, Clock, X, ZoomIn, ZoomOut, Download, ArrowLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -227,6 +227,64 @@ const UpcomingEventsSection = styled.div`
   margin-bottom: 4rem;
 `;
 
+const YearFolder = styled.div`
+  margin-bottom: 1.5rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.03);
+`;
+
+const YearHeader = styled.div`
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  background: ${props => props.$isOpen ? '#f8fafc' : 'white'};
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: #f8fafc;
+  }
+`;
+
+const YearTitle = styled.h3`
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1A2B4C;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0;
+  
+  &::before {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 24px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFBF00' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z'/%3E%3C/svg%3E") no-repeat center;
+  }
+`;
+
+const YearContent = styled(motion.div)`
+  overflow: hidden;
+`;
+
+const EventsGridContainer = styled.div`
+  padding: 2rem;
+  background: #f8fafc;
+  border-top: 1px solid rgba(0,0,0,0.05);
+`;
+
+const ToggleIcon = styled(motion.div)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1A2B4C;
+`;
+
 const Modal = styled(motion.div)`
   position: fixed;
   top: 0;
@@ -396,6 +454,31 @@ const EventsPage = () => {
   const [pastEvents, setPastEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [viewImageData, setViewImageData] = useState(null); // { urls: [], index: 0 }
+  const [activeYear, setActiveYear] = useState(null);
+
+  const calculateAcademicYear = (dateString) => {
+    if (!dateString) return 'Other';
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = date.getMonth(); 
+    if (month >= 5) return `${year}-${year + 1}`;
+    return `${year - 1}-${year}`;
+  };
+
+  const groupedPastEvents = pastEvents.reduce((groups, event) => {
+    const year = event.academicYear || calculateAcademicYear(event.date);
+    if (!groups[year]) groups[year] = [];
+    groups[year].push(event);
+    return groups;
+  }, {});
+
+  const sortedYears = Object.keys(groupedPastEvents).sort((a, b) => b.localeCompare(a));
+
+  useEffect(() => {
+    if (sortedYears.length > 0 && !activeYear) {
+      setActiveYear(sortedYears[0]);
+    }
+  }, [sortedYears, activeYear]);
 
   useEffect(() => {
     fetchEvents();
@@ -547,9 +630,38 @@ const EventsPage = () => {
       {pastEvents.length > 0 && (
         <div>
           <SectionTitle>Past Events</SectionTitle>
-          <EventsGrid>
-            {pastEvents.map(event => renderEventCard(event, false))}
-          </EventsGrid>
+          {sortedYears.map(year => (
+            <YearFolder key={year}>
+              <YearHeader 
+                $isOpen={activeYear === year} 
+                onClick={() => setActiveYear(activeYear === year ? null : year)}
+              >
+                <YearTitle>{year}</YearTitle>
+                <ToggleIcon
+                  animate={{ rotate: activeYear === year ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <ChevronDown size={24} />
+                </ToggleIcon>
+              </YearHeader>
+              <AnimatePresence>
+                {activeYear === year && (
+                  <YearContent
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <EventsGridContainer>
+                      <EventsGrid style={{ marginBottom: 0 }}>
+                        {groupedPastEvents[year].map(event => renderEventCard(event, false))}
+                      </EventsGrid>
+                    </EventsGridContainer>
+                  </YearContent>
+                )}
+              </AnimatePresence>
+            </YearFolder>
+          ))}
         </div>
       )}
 

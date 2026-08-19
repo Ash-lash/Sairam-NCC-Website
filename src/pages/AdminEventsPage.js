@@ -343,6 +343,27 @@ const CancelButton = styled.button`
   }
 `;
 
+const generateAcademicYears = () => {
+  const currentYear = new Date().getFullYear();
+  const years = [];
+  for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+    years.push(`${i}-${i + 1}`);
+  }
+  return years;
+};
+
+const calculateAcademicYear = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = date.getMonth(); 
+  if (month >= 5) {
+    return `${year}-${year + 1}`;
+  } else {
+    return `${year - 1}-${year}`;
+  }
+};
+
 const AdminEventsPage = () => {
   const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -354,12 +375,15 @@ const AdminEventsPage = () => {
     date: '',
     time: '',
     location: '',
+    academicYear: '',
     posterUrl: '',
     photos: []
   });
   const [posterFile, setPosterFile] = useState(null);
   const [photoFiles, setPhotoFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
+
+  const academicYears = generateAcademicYears();
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -456,6 +480,7 @@ const AdminEventsPage = () => {
       date: '',
       time: '',
       location: '',
+      academicYear: '',
       posterUrl: '',
       photos: []
     });
@@ -472,6 +497,7 @@ const AdminEventsPage = () => {
       date: event.date,
       time: event.time || '',
       location: event.location || '',
+      academicYear: event.academicYear || calculateAcademicYear(event.date),
       posterUrl: event.posterUrl || '',
       photos: event.photos || []
     });
@@ -526,6 +552,11 @@ const AdminEventsPage = () => {
                   <StatusBadge $upcoming={isUpcoming(event.date)}>
                     {isUpcoming(event.date) ? 'Upcoming' : 'Past'}
                   </StatusBadge>
+                  {event.academicYear && (
+                    <StatusBadge $upcoming={false} style={{ background: '#3b82f6', marginLeft: '0.5rem' }}>
+                      {event.academicYear}
+                    </StatusBadge>
+                  )}
                 </h3>
                 <p><strong>{event.eventType}</strong></p>
                 <p>{new Date(event.date).toLocaleDateString()} {event.time && `• ${event.time}`}</p>
@@ -597,9 +628,30 @@ const AdminEventsPage = () => {
                   <Input
                     type="date"
                     value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    onChange={(e) => {
+                      const newDate = e.target.value;
+                      setFormData({ 
+                        ...formData, 
+                        date: newDate,
+                        academicYear: formData.academicYear || calculateAcademicYear(newDate)
+                      });
+                    }}
                     required
                   />
+                </FormGroup>
+
+                <FormGroup>
+                  <Label>Academic Year *</Label>
+                  <Select
+                    value={formData.academicYear}
+                    onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
+                    required
+                  >
+                    <option value="">Select Academic Year</option>
+                    {academicYears.map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </Select>
                 </FormGroup>
 
                 <FormGroup>

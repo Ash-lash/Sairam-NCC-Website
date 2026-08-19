@@ -1,5 +1,9 @@
 /* eslint-disable no-restricted-globals */
 
+// Precache placeholder for craco/workbox compiler
+// eslint-disable-next-line no-unused-vars
+const manifest = self.__WB_MANIFEST;
+
 // This service worker intercepts image requests and stores them in the Cache API (Cache Memory).
 // This provides an "Amazon-like" asynchronous retrieval experience across all devices.
 
