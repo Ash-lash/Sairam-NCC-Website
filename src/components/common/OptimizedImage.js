@@ -95,11 +95,11 @@ const OptimizedImage = memo(({
     const { primaryUrl, srcSet } = useMemo(() => {
         if (!src) return { primaryUrl: '', srcSet: '' };
         const base = getOptimizedUrl(src, width, quality);
-        const retina = getOptimizedUrl(src, Math.round(width * 1.5), quality);
-        const hiDpi = getOptimizedUrl(src, Math.round(width * 2), Math.max(60, quality - 5));
+        // By removing retina and hiDpi srcSet, we reduce concurrent requests to wsrv.nl by 66%
+        // which prevents rate-limiting and massive slowdowns.
         return {
             primaryUrl: base,
-            srcSet: base === src ? '' : `${base} 1x, ${retina} 1.5x, ${hiDpi} 2x`,
+            srcSet: '',
         };
     }, [src, width, quality]);
 

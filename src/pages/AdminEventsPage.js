@@ -398,25 +398,15 @@ const AdminEventsPage = () => {
 
   const fetchEvents = async () => {
     try {
-      const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
-      const q = query(
-        collection(db, 'events'),
-        where('date', '>=', today) // Filter by date in Firestore
-      );
-
-      const querySnapshot = await getDocs(q);
+      const eventsCollection = collection(db, 'events');
+      const querySnapshot = await getDocs(eventsCollection);
 
       let eventsData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
 
-      // Local filter for status (if 'status' field existed and was used for 'upcoming')
-      // As per the instruction, if a 'status' field was intended to be filtered,
-      // it would be done here. Assuming 'isUpcoming' function determines status.
-      // eventsData = eventsData.filter(e => e.status === 'upcoming'); // This line is commented as 'status' field is not present in current data structure.
-
-      // Sort by date
+      // Sort by date (descending, newest first)
       eventsData.sort((a, b) => new Date(b.date) - new Date(a.date));
       setEvents(eventsData);
     } catch (error) {
@@ -545,7 +535,7 @@ const AdminEventsPage = () => {
         <EventsList>
           {events.map(event => (
             <EventItem key={event.id}>
-              {event.posterUrl && <EventPoster src={getOptimizedUrl(event.posterUrl, 300, 80)} alt={event.name} />}
+              {event.posterUrl && <EventPoster src={getOptimizedUrl(event.posterUrl, 300, 80)} alt={event.name} loading="lazy" />}
               <EventInfo>
                 <h3>
                   {event.name}
@@ -675,6 +665,18 @@ const AdminEventsPage = () => {
 
                 <FormGroup>
                   <Label>Event Poster</Label>
+                  {formData.posterUrl && !posterFile && (
+                    <div style={{ position: 'relative', width: '150px', marginBottom: '10px' }}>
+                      <img src={getOptimizedUrl(formData.posterUrl, 200, 80)} alt="Current Poster" style={{ width: '100%', borderRadius: '8px' }} />
+                      <button 
+                        type="button" 
+                        onClick={() => setFormData({ ...formData, posterUrl: '' })}
+                        style={{ position: 'absolute', top: '5px', right: '5px', background: 'red', color: 'white', border: 'none', borderRadius: '50%', width: '25px', height: '25px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
                   <input
                     type="file"
                     accept="image/*"
@@ -684,12 +686,32 @@ const AdminEventsPage = () => {
                   />
                   <FileInputLabel htmlFor="poster-upload">
                     <Upload size={20} />
-                    {posterFile ? posterFile.name : 'Upload Poster'}
+                    {posterFile ? posterFile.name : (formData.posterUrl ? 'Change Poster' : 'Upload Poster')}
                   </FileInputLabel>
                 </FormGroup>
 
                 <FormGroup>
                   <Label>Event Photos (Multiple)</Label>
+                  {formData.photos && formData.photos.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '10px' }}>
+                      {formData.photos.map((photoUrl, idx) => (
+                        <div key={idx} style={{ position: 'relative', width: '100px', height: '100px' }}>
+                          <img src={getOptimizedUrl(photoUrl, 150, 80)} alt={`Event Photo ${idx+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              const newPhotos = [...formData.photos];
+                              newPhotos.splice(idx, 1);
+                              setFormData({ ...formData, photos: newPhotos });
+                            }}
+                            style={{ position: 'absolute', top: '5px', right: '5px', background: 'red', color: 'white', border: 'none', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <input
                     type="file"
                     accept="image/*"
@@ -700,7 +722,7 @@ const AdminEventsPage = () => {
                   />
                   <MultiFileLabel htmlFor="photos-upload">
                     <ImageIcon size={20} />
-                    Upload Event Photos
+                    Upload New Photos
                   </MultiFileLabel>
                   {photoFiles.length > 0 && (
                     <SelectedFiles>
