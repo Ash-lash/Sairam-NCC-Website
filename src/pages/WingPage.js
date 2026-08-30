@@ -1,5 +1,5 @@
 // src/pages/WingPage.js
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
@@ -31,6 +31,7 @@ import AddCadetModal from '../components/admin/AddCadetModal';
 import AddBatchModal from '../components/admin/AddBatchModal';
 import EditBatchModal from '../components/admin/EditBatchModal';
 import OptimizedImage from '../components/common/OptimizedImage';
+import MorphSlider from '../components/common/MorphSlider';
 import SEO from '../components/common/SEO';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
 import { prefetchList } from '../utils/mediaCache';
@@ -1156,33 +1157,14 @@ const WingPage = () => {
     return () => { if (window.cancelIdleCallback && typeof handle === 'number') window.cancelIdleCallback(handle); };
   }, [slides]);
 
-
-
-  // Slideshow next/prev logic
-  const nextSlide = useCallback(() => {
-    if (slides.length > 0) setCurrentSlide(prev => (prev + 1) % slides.length);
-  }, [slides.length]);
-
-  const prevSlide = useCallback(() => {
-    if (slides.length > 0) setCurrentSlide(prev => (prev - 1 + slides.length) % slides.length);
-  }, [slides.length]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "ArrowRight") nextSlide();
-      else if (e.key === "ArrowLeft") prevSlide();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [nextSlide, prevSlide]);
-
-  // Auto-advance slideshow
-  useEffect(() => {
-    if (slides.length <= 1) return; // Don't auto-advance if only 0 or 1 slide
-    const slideshowTimer = setTimeout(nextSlide, 5000); // Change slide every 5 seconds
-    return () => clearTimeout(slideshowTimer); // Clear timer on unmount or slide change
-  }, [currentSlide, slides.length, nextSlide]);
+  // Memoize slides for MorphSlider to prevent unnecessary unmounts
+  const morphItems = useMemo(() => {
+    return slides.map(slide => ({
+      image: getOptimizedUrl(slide.imageUrl, 1600, 80),
+      fallbackImage: slide.imageUrl,
+      caption: slide.description || ''
+    }));
+  }, [slides]);
 
   // Function to trigger data refresh
   const handleDataChange = () => {
@@ -1716,60 +1698,30 @@ const WingPage = () => {
 
       {/* Hero Section */}
       <HeroSection>
-        {/* Slideshow */}
+        {/* Morph Slideshow */}
         <CarouselWrapper>
-          <AnimatePresence mode="wait">
-            {slides.length > 0 ? (
-              <SlideContainer
-                key={currentSlide}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 1 }}
-              >
-                <BlurredBackground $bgImage={getOptimizedUrl(slides[currentSlide].imageUrl, 400, 20)} />
-                <MainImage $bgImage={getOptimizedUrl(slides[currentSlide].imageUrl, 1200, 70)} />
-                {slides[currentSlide].description && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '80px',
-                    left: 0,
-                    width: '100%',
-                    background: 'rgba(0,0,0,0.5)',
-                    color: 'white',
-                    padding: '1rem',
-                    textAlign: 'center',
-                    fontSize: '1.2rem',
-                    fontWeight: '500',
-                    zIndex: 5
-                  }}>
-                    {slides[currentSlide].description}
-                  </div>
-                )}
-              </SlideContainer>
-            ) : (
-              <motion.div
+          {slides.length > 0 ? (
+            <MorphSlider
+              items={morphItems}
+              transition="melt"
+              intensity={0.55}
+              aberration={0.35}
+              drift={0.4}
+              autoplay={true}
+              autoplayDelay={5}
+              radius={0}
+            />
+          ) : (
+            <motion.div
                 style={{ width: '100%', height: '100%', background: '#0a1529' }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                <div style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  color: 'white',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  textAlign: 'center',
-                  padding: '2rem'
-                }}>
+                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: 'white', textAlign: 'center' }}>
                   {slidesLoaded ? (
-                    // Loaded but empty — show a clear message
+                    // Empty state
                     <>
-                      <div style={{ fontSize: '3rem' }}>📷</div>
+                      <div style={{ fontSize: '3rem' }}>📸</div>
                       <p style={{ opacity: 0.7, fontSize: '1.1rem', fontWeight: '600' }}>No photos added yet</p>
                       <p style={{ opacity: 0.4, fontSize: '0.9rem' }}>Photos will appear here once uploaded by an admin.</p>
                     </>
@@ -1782,21 +1734,8 @@ const WingPage = () => {
                   )}
                 </div>
               </motion.div>
-            )}
-          </AnimatePresence>
+          )}
         </CarouselWrapper>
-        {/* Slideshow Navigation */}
-        {slides.length > 1 && (
-          <>
-            <NavArrow className="prev" onClick={prevSlide} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}><ChevronLeft size={24} /></NavArrow>
-            <NavArrow className="next" onClick={nextSlide} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}><ChevronRight size={24} /></NavArrow>
-            <DotsContainer>
-              {slides.map((_, index) => (
-                <Dot key={index} className={index === currentSlide ? 'active' : ''} onClick={() => setCurrentSlide(index)} />
-              ))}
-            </DotsContainer>
-          </>
-        )}
         <HeroOverlay />
         <HeroContent
           $wingColor={wingType === 'army' ? '#D22B2B' : wingType === 'navy' ? '#000080' : '#87CEEB'}

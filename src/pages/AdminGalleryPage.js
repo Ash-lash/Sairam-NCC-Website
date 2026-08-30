@@ -15,6 +15,7 @@ import CounterLoader from '../components/common/CounterLoader';
 import { getOptimizedUrl } from '../utils/imageOptimizer';
 import { downloadImage } from '../utils/downloadHelper';
 import OptimizedImage from '../components/common/OptimizedImage';
+import BackfillImagesButton from '../components/admin/BackfillImagesButton';
 
 // --- DASHBOARD STYLES ---
 
@@ -543,6 +544,7 @@ const AdminGalleryPage = () => {
             </div>
             <div>
               <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800, letterSpacing: '-0.5px' }}>Gallery Studio</h2>
+              <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>NCC Management Console</span>
               <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
                 <div style={{ width: 12, height: 2, background: '#d1202f' }}></div>
                 <div style={{ width: 12, height: 2, background: '#1a2b4c' }}></div>
@@ -550,6 +552,8 @@ const AdminGalleryPage = () => {
               </div>
             </div>
           </div>
+
+          <BackfillImagesButton />
 
           <AnimatePresence mode="wait">
             {!selectedAlbum ? (
