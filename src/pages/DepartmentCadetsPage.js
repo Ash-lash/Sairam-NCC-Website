@@ -456,9 +456,12 @@ const SortableCadetCard = ({ cadet, isAdmin, onCadetClick, onAdminEdit }) => {
               </>
             )}
           </div>
-          {(cadet.studentID || cadet.secID) && (
-            <StudentID>ID: {cadet.studentID || cadet.secID || cadet.regNo}</StudentID>
-          )}
+            {(cadet.studentID || cadet.secID) && (
+              <StudentID>ID: {cadet.studentID || cadet.secID}</StudentID>
+            )}
+            {cadet.regimentalNo && (
+              <StudentID>Reg No: {cadet.regimentalNo}</StudentID>
+            )}
           <p style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.4rem', fontWeight: 500 }}>
             {cadet.Wing} Wing | Batch {cadet.Batch}
           </p>
@@ -952,8 +955,11 @@ const DepartmentCadetsPage = () => {
                                 <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#10b981', textTransform: 'uppercase' }}>{cadet.seniority?.label || 'Cadet'}</span>
                               </div>
                               {(cadet.studentID || cadet.secID) && (
-                                <StudentID>ID: {cadet.studentID || cadet.secID || cadet.regNo}</StudentID>
-                              )}
+                                  <StudentID>ID: {cadet.studentID || cadet.secID}</StudentID>
+                                )}
+                                {cadet.regimentalNo && (
+                                  <StudentID>Reg No: {cadet.regimentalNo}</StudentID>
+                                )}
                               <p style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.4rem', fontWeight: 500 }}>
                                 {cadet.Wing} Wing | Batch {cadet.Batch}
                               </p>
@@ -1192,3 +1198,4 @@ const DepartmentCadetsPage = () => {
 };
 
 export default DepartmentCadetsPage;
+
