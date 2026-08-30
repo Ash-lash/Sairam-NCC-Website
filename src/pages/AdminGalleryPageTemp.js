@@ -13,6 +13,7 @@ import { uploadFile } from '../utils/uploadHelper';
 import SEO from '../components/common/SEO';
 import { motion, AnimatePresence } from 'framer-motion';
 import CounterLoader from '../components/common/CounterLoader';
+import BackfillImagesButton from '../components/admin/BackfillImagesButton';
 
 // --- DASHBOARD STYLES ---
 
@@ -407,6 +408,8 @@ const AdminGalleryPage = () => {
                             <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Admin Console</span>
                         </div>
                     </div>
+                    
+                    <BackfillImagesButton />
 
                     <AnimatePresence mode="wait">
                         {!selectedAlbum ? (

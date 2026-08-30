@@ -9,15 +9,18 @@ import { getOptimizedImageUrl } from '../../utils/imageKitHelper';
 const AsyncCachedImage = ({ src, alt, className, style, width = 800, ...props }) => {
   const [isPlaceholderLoaded, setIsPlaceholderLoaded] = useState(false);
   const [isMainLoaded, setIsMainLoaded] = useState(false);
+  const [mainImageError, setMainImageError] = useState(false);
 
   // Generate the tiny, heavily blurred placeholder URL
   const placeholderSrc = getOptimizedImageUrl(src, { width: 50, blur: 10, quality: 10 });
-  // Generate the high-resolution, WebP optimized URL
-  const mainSrc = getOptimizedImageUrl(src, { width });
+  
+  // Try to use the optimized WebP thumbnail first. If it fails (e.g., existing images before extension), fallback to original.
+  const mainSrc = mainImageError ? src : getOptimizedImageUrl(src, { width });
 
   useEffect(() => {
     setIsPlaceholderLoaded(false);
     setIsMainLoaded(false);
+    setMainImageError(false);
   }, [src]);
 
   return (
@@ -62,6 +65,11 @@ const AsyncCachedImage = ({ src, alt, className, style, width = 800, ...props })
           alt={alt || "Media Image"}
           loading="lazy"
           onLoad={() => setIsMainLoaded(true)}
+          onError={() => {
+            if (!mainImageError) {
+              setMainImageError(true); // Fallback to original image
+            }
+          }}
           style={{
             position: 'absolute',
             top: 0,

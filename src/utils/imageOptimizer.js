@@ -48,20 +48,43 @@ const isProxiableUrl = (url) => {
 export const getOptimizedUrl = (originalUrl, width = 800, quality = 80) => {
     if (!originalUrl) return originalUrl;
     if (!isProxiableUrl(originalUrl)) return originalUrl;
+    
+    // Only apply Firebase Extension logic if it's a Firebase Storage URL
+    if (originalUrl.startsWith('https://firebasestorage.googleapis.com')) {
+        try {
+            const urlObj = new URL(originalUrl);
+            const oIndex = urlObj.pathname.indexOf('/o/');
+            if (oIndex !== -1) {
+                const objectPathStr = urlObj.pathname.substring(oIndex + 3);
+                const pathParts = objectPathStr.split('%2F');
+                const lastPart = pathParts.pop();
+                
+                const dotIndex = lastPart.lastIndexOf('.');
+                if (dotIndex !== -1) {
+                    const name = lastPart.substring(0, dotIndex);
+                    // Determine which thumbnail size to request
+                    const safeWidth = Math.max(1, Math.round(width * (window.devicePixelRatio || 1)));
+                    const size = safeWidth <= 400 ? '400x400' : '800x800';
+                    const newLastPart = `${name}_${size}.webp`;
+                    
+                    pathParts.push(newLastPart);
+                    const newObjectPathStr = 'thumbnails%2F' + pathParts.join('%2F');
+                    
+                    urlObj.pathname = urlObj.pathname.substring(0, oIndex + 3) + newObjectPathStr;
+                    urlObj.searchParams.delete('token');
+                    if (!urlObj.searchParams.has('alt')) {
+                        urlObj.searchParams.set('alt', 'media');
+                    }
+                    
+                    return urlObj.toString();
+                }
+            }
+        } catch (e) {
+            // Fallback to original
+        }
+    }
 
-    const safeWidth = Math.max(1, Math.round(width * (window.devicePixelRatio || 1)));
-    const adjustedQuality = safeWidth > 1200 ? Math.max(quality - 10, 60) : Math.min(quality, 100);
-
-    const separator = originalUrl.includes('?') ? '&' : '?';
-    const bustedUrl = `${originalUrl}${separator}_bust=${Date.now()}`;
-
-    const params = new URLSearchParams({
-        url: bustedUrl,
-        w: String(safeWidth),
-        q: String(adjustedQuality),
-        output: 'webp',
-    });
-    return `https://wsrv.nl/?${params.toString()}`;
+    return originalUrl;
 };
 
 /**
@@ -72,17 +95,37 @@ export const getBlurUrl = (originalUrl) => {
     if (!originalUrl) return originalUrl;
     if (!isProxiableUrl(originalUrl)) return originalUrl;
 
-    const separator = originalUrl.includes('?') ? '&' : '?';
-    const bustedUrl = `${originalUrl}${separator}_bust=${Date.now()}`;
+    if (originalUrl.startsWith('https://firebasestorage.googleapis.com')) {
+        try {
+            const urlObj = new URL(originalUrl);
+            const oIndex = urlObj.pathname.indexOf('/o/');
+            if (oIndex !== -1) {
+                const objectPathStr = urlObj.pathname.substring(oIndex + 3);
+                const pathParts = objectPathStr.split('%2F');
+                const lastPart = pathParts.pop();
+                
+                const dotIndex = lastPart.lastIndexOf('.');
+                if (dotIndex !== -1) {
+                    const name = lastPart.substring(0, dotIndex);
+                    // Use the smallest generated thumbnail for the blur placeholder
+                    const newLastPart = `${name}_400x400.webp`;
+                    
+                    pathParts.push(newLastPart);
+                    const newObjectPathStr = 'thumbnails%2F' + pathParts.join('%2F');
+                    
+                    urlObj.pathname = urlObj.pathname.substring(0, oIndex + 3) + newObjectPathStr;
+                    urlObj.searchParams.delete('token');
+                    if (!urlObj.searchParams.has('alt')) {
+                        urlObj.searchParams.set('alt', 'media');
+                    }
+                    
+                    return urlObj.toString();
+                }
+            }
+        } catch (e) {}
+    }
 
-    const params = new URLSearchParams({
-        url: bustedUrl,
-        w: '20',
-        q: '20',
-        output: 'webp',
-        blur: '5',
-    });
-    return `https://wsrv.nl/?${params.toString()}`;
+    return originalUrl;
 };
 
 

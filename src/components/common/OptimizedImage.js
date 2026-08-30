@@ -99,57 +99,65 @@ const OptimizedImage = memo(({
         // which prevents rate-limiting and massive slowdowns.
         return {
             primaryUrl: base,
-            srcSet: '',
+            srcSet: undefined
         };
     }, [src, width, quality]);
 
-    // If the image is already decoded in cache (common for local imports and
-    // repeat views), mark it loaded BEFORE the browser paints so the skeleton
-    // fill never flashes behind transparent PNGs / SVG logos.
-    useIsomorphicLayoutEffect(() => {
-        const node = imgRef.current;
-        if (node && node.complete && node.naturalWidth > 0) {
-            setIsLoaded(true);
-        }
+    const [imgSrc, setImgSrc] = useState(primaryUrl);
+    useEffect(() => {
+        setImgSrc(primaryUrl);
+        setIsLoaded(false);
     }, [primaryUrl]);
 
-    // Delay showing the skeleton by 120ms — fast loads never paint it at all,
-    // matching how Apple / Amazon avoid skeleton flicker on cached assets.
-    useEffect(() => {
-        if (isLoaded) { setShowSkeleton(false); return; }
-        const t = setTimeout(() => setShowSkeleton(true), 120);
-        return () => clearTimeout(t);
-    }, [isLoaded, primaryUrl]);
+    // Fast-path: Check if image is already completely loaded (from cache).
+    // This avoids displaying the skeleton entirely for instant renders.
+    useIsomorphicLayoutEffect(() => {
+        if (!src) return;
+        if (imgRef.current && imgRef.current.complete) {
+            setIsLoaded(true);
+        } else {
+            // Delay showing the skeleton by 50ms so instant loads never flicker.
+            const timer = setTimeout(() => setShowSkeleton(true), 50);
+            return () => clearTimeout(timer);
+        }
+    }, [src]);
+
+    const handleLoad = (e) => {
+        setIsLoaded(true);
+        if (onLoad) onLoad(e);
+    };
+    
+    const handleError = () => {
+        // If the thumbnail 404s (e.g. extension hasn't generated it yet), fallback to original
+        if (imgSrc !== src) {
+            setImgSrc(src);
+        }
+    };
 
     if (!src) return null;
 
-    const handleLoad = () => {
-        setIsLoaded(true);
-        if (onLoad) onLoad();
-    };
-
     return (
         <ImageContainer
-            style={style}
             className={className}
-            $isLoaded={isLoaded || !showSkeleton}
-            $borderRadius={style.borderRadius}
+            style={style}
+            $isLoaded={isLoaded}
             $aspectRatio={aspectRatio}
+            $borderRadius={style.borderRadius}
         >
             <StyledImage
                 ref={imgRef}
-                src={primaryUrl || src}
-                srcSet={srcSet || undefined}
-                sizes={sizes}
-                alt={alt || 'Image'}
-                $isLoaded={isLoaded}
-                $objectFit={objectFit}
-                $objectPosition={objectPosition}
-                onLoad={handleLoad}
-                onError={handleLoad}
+                src={imgSrc}
+                srcSet={srcSet}
+                sizes={sizes || `${width}px`}
+                alt={alt}
                 loading={loading}
                 decoding="async"
                 fetchpriority={fetchpriority}
+                onLoad={handleLoad}
+                onError={handleError}
+                $isLoaded={isLoaded}
+                $objectFit={objectFit}
+                $objectPosition={objectPosition}
                 {...rest}
             />
         </ImageContainer>
