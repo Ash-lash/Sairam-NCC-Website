@@ -1088,7 +1088,6 @@ const WingPage = () => {
   const navigate = useNavigate();
   const [slides, setSlides] = useState([]);
   const [slidesLoaded, setSlidesLoaded] = useState(false);
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [batches, setBatches] = useState([]);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -1707,8 +1706,9 @@ const WingPage = () => {
               intensity={0.55}
               aberration={0.35}
               drift={0.4}
+              duration={2.5}
               autoplay={true}
-              autoplayDelay={5}
+              autoplayDelay={6}
               radius={0}
             />
           ) : (

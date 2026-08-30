@@ -520,12 +520,17 @@ export default function MorphSlider({
   showControls = true,
   showIndicators = true,
   className = '',
+  onChange,
   ...props
 }) {
   const containerRef = useRef(null);
   const engineRef = useRef(null);
   const [index, setIndex] = useState(startIndex);
   const [hovering, setHovering] = useState(false);
+
+  useEffect(() => {
+    if (onChange) onChange(index);
+  }, [index, onChange]);
 
   const optsRef = useRef();
   optsRef.current = { transition, duration, ease, intensity, scale, aberration, drift, overlayColor, loop };
