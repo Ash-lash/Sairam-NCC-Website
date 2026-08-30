@@ -1,5 +1,6 @@
 export const getOptimizedImageUrl = (originalUrl, { width = 800, blur, quality = 80 } = {}) => {
   if (!originalUrl) return originalUrl;
+  if (!originalUrl.startsWith('http')) return originalUrl;
   
   // Cache buster ensures service worker fetches a fresh copy
   const separator = originalUrl.includes('?') ? '&' : '?';

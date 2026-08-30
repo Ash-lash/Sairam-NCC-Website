@@ -47,6 +47,8 @@ const isProxiableUrl = (url) => {
  */
 export const getOptimizedUrl = (originalUrl, width = 800, quality = 80) => {
     if (!originalUrl) return originalUrl;
+    if (!isProxiableUrl(originalUrl)) return originalUrl;
+
     const safeWidth = Math.max(1, Math.round(width * (window.devicePixelRatio || 1)));
     const adjustedQuality = safeWidth > 1200 ? Math.max(quality - 10, 60) : Math.min(quality, 100);
 
@@ -68,6 +70,8 @@ export const getOptimizedUrl = (originalUrl, width = 800, quality = 80) => {
  */
 export const getBlurUrl = (originalUrl) => {
     if (!originalUrl) return originalUrl;
+    if (!isProxiableUrl(originalUrl)) return originalUrl;
+
     const separator = originalUrl.includes('?') ? '&' : '?';
     const bustedUrl = `${originalUrl}${separator}_bust=${Date.now()}`;
 
