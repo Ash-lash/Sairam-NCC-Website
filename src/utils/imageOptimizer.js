@@ -46,22 +46,19 @@ const isProxiableUrl = (url) => {
  * @returns {string}
  */
 export const getOptimizedUrl = (originalUrl, width = 800, quality = 80) => {
-    if (!originalUrl) return '';
-    if (!IMAGE_PROXY_ENABLED) return originalUrl;
-    if (!isProxiableUrl(originalUrl)) return originalUrl;
+    if (!originalUrl) return originalUrl;
+    const safeWidth = Math.max(1, Math.round(width * (window.devicePixelRatio || 1)));
+    const adjustedQuality = safeWidth > 1200 ? Math.max(quality - 10, 60) : Math.min(quality, 100);
 
-    // Use AVIF if possible (smaller than WebP, same quality)
-    // Reduce quality slightly for very large images to save bandwidth
-    const safeWidth = Math.max(1, Math.round(width * getDpr()));
-    const adjustedQuality = safeWidth > 1200 ? clamp(quality - 10, 60, 90) : clamp(quality, 60, 100);
+    const separator = originalUrl.includes('?') ? '&' : '?';
+    const bustedUrl = `${originalUrl}${separator}_bust=${Date.now()}`;
 
     const params = new URLSearchParams({
-        url: originalUrl,
+        url: bustedUrl,
         w: String(safeWidth),
         q: String(adjustedQuality),
-        output: 'webp',     // Switch back to WebP for maximum compatibility
+        output: 'webp',
     });
-
     return `https://wsrv.nl/?${params.toString()}`;
 };
 
@@ -70,18 +67,17 @@ export const getOptimizedUrl = (originalUrl, width = 800, quality = 80) => {
  * Use this as a CSS background while the full image loads.
  */
 export const getBlurUrl = (originalUrl) => {
-    if (!originalUrl) return '';
-    if (!IMAGE_PROXY_ENABLED) return '';
-    if (!isProxiableUrl(originalUrl)) return '';
+    if (!originalUrl) return originalUrl;
+    const separator = originalUrl.includes('?') ? '&' : '?';
+    const bustedUrl = `${originalUrl}${separator}_bust=${Date.now()}`;
 
     const params = new URLSearchParams({
-        url: originalUrl,
+        url: bustedUrl,
         w: '20',
         q: '20',
         output: 'webp',
         blur: '5',
     });
-
     return `https://wsrv.nl/?${params.toString()}`;
 };
 

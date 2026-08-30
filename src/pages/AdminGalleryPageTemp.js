@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { collection, getDocs, doc, addDoc, deleteDoc, writeBatch, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
+import { uploadFileToFirebaseStorage, deleteFileFromFirebaseStorage } from '../utils/firebaseStorage';
+import AsyncCachedImage from '../components/common/AsyncCachedImage';
 import {
     ImagePlus, Trash2, Plus, ArrowLeft, Upload, Grid as GridIcon,
     FolderPlus, ImageIcon, Settings2, CheckCircle2,
@@ -512,7 +514,11 @@ const AdminGalleryPage = () => {
                                             transition={{ delay: i * 0.05 }}
                                         >
                                             <CardImage>
-                                                <img src={album.coverImage} alt={album.name} loading="lazy" />
+                                                <AsyncCachedImage 
+                                                    src={album.coverImage} 
+                                                    alt={album.name} 
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                />
                                                 <DeleteFab onClick={(e) => handleDeleteAlbum(e, album.id)}>
                                                     <Trash2 size={18} />
                                                 </DeleteFab>
@@ -544,7 +550,11 @@ const AdminGalleryPage = () => {
                                 <PhotoGrid>
                                     {albumPhotos.map((photo, i) => (
                                         <PhotoItem key={photo.id}>
-                                            <img src={photo.imageUrl} alt="gallery" loading="lazy" />
+                                            <AsyncCachedImage 
+                                                src={photo.imageUrl} 
+                                                alt="gallery"
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            />
                                             <PhotoOverlayBtn onClick={() => handleDeletePhoto(photo.id)}>
                                                 <Trash2 size={24} />
                                                 <span style={{ marginLeft: '8px' }}>Remove</span>

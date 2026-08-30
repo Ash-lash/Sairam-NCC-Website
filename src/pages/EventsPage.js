@@ -103,6 +103,7 @@ const EventBanner = styled.div`
   height: 220px;
   position: relative;
   overflow: hidden;
+  background-color: #f8fafc;
   
   &::after {
     content: '';
@@ -114,12 +115,13 @@ const EventBanner = styled.div`
     background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.5));
     opacity: 0.6;
     transition: opacity 0.3s;
+    pointer-events: none;
   }
   
   img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     transition: transform 0.8s ease;
   }
 
@@ -313,8 +315,10 @@ const ModalContent = styled.div`
 const ModalBanner = styled.div`
   height: 300px;
   background: ${props => props.$imageUrl ? `url(${props.$imageUrl})` : 'linear-gradient(135deg, #FFBF00 0%, #FFD700 100%)'};
-  background-size: cover;
+  background-size: contain;
+  background-repeat: no-repeat;
   background-position: center;
+  background-color: #000; /* Black background looks better for letterboxed images in modals */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -568,7 +572,7 @@ const EventsPage = () => {
             width={600}
             quality={80}
             alt={event.name}
-            objectFit="cover"
+            objectFit="contain"
             style={{ width: '100%', height: '100%' }}
           />
         ) : (
@@ -741,16 +745,16 @@ const EventsPage = () => {
                       {selectedEvent.photos.map((photo, idx) => (
                         <div
                           key={idx}
-                          style={{ borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', height: '150px' }}
+                          style={{ borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', height: '150px', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           onClick={() => openImageViewer(selectedEvent.photos, idx)}
                         >
                           <OptimizedImage
                             src={photo}
                             width={400}
                             quality={80}
-                            alt={`Event photo ${idx + 1}`}
-                            objectFit="cover"
-                            style={{ width: '100%', height: '100%' }}
+                            alt={`Photo ${idx + 1}`}
+                            objectFit="contain"
+                            style={{ width: '100%', height: '100%', transition: 'transform 0.3s ease' }}
                           />
                         </div>
                       ))}
