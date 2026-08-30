@@ -284,7 +284,7 @@ const AddCadetModal = ({ isOpen, onClose, wing, batch, onComplete }) => {
               <FormGroup><Label>SEC ID</Label><Input type="text" value={secID} onChange={(e) => setSecID(e.target.value)} required /></FormGroup>
 
               <FormGroup>
-                <Label>Regimental No</Label>
+                <Label>Registration No</Label>
                 <Input type="text" value={regimentalNo} onChange={(e) => setRegimentalNo(e.target.value)} required />
               </FormGroup>
 

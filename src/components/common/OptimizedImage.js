@@ -78,6 +78,7 @@ const OptimizedImage = memo(({
     style = {},
     className = '',
     onLoad,
+    onError,
     objectFit = 'cover',
     objectPosition = 'center',
     aspectRatio,
@@ -127,10 +128,12 @@ const OptimizedImage = memo(({
         if (onLoad) onLoad(e);
     };
     
-    const handleError = () => {
+    const handleError = (e) => {
         // If the thumbnail 404s (e.g. extension hasn't generated it yet), fallback to original
         if (imgSrc !== src) {
             setImgSrc(src);
+        } else if (onError) {
+            onError(e); // Only call the parent's onError if even the original fails
         }
     };
 

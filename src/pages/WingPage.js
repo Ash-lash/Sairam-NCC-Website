@@ -955,7 +955,7 @@ const SortableCadetCard = ({ cadet, isAdmin, onCadetClick, onAdminEdit, onDelete
       <div onClick={() => onCadetClick(cadet)} style={{ paddingBottom: '0.75rem', cursor: 'pointer' }}>
         <CadetName>{cadet.Name}</CadetName>
         <CadetInfo>{cadet.secID}</CadetInfo>
-        {cadet.regimentalNo && <CadetInfo>{cadet.regimentalNo}</CadetInfo>}
+        {cadet.regimentalNo && <CadetInfo>Reg No: {cadet.regimentalNo}</CadetInfo>}
         <CadetInfo>{`${cadet.dept}, Sec ${cadet.section} `}</CadetInfo>
       </div>
     </CadetCard>
@@ -1945,3 +1945,4 @@ const WingPage = () => {
   );
 };
 export default WingPage;
+

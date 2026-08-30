@@ -423,7 +423,7 @@ const AdminCadetEditor = ({ isOpen, onClose, cadet, onComplete, onDelete }) => {
             </div>
 
             <FormGroup>
-              <Label>Regimental No</Label>
+              <Label>Registration No</Label>
               <Input type="text" value={regimentalNo} onChange={(e) => setRegimentalNo(e.target.value)} />
             </FormGroup>
 
