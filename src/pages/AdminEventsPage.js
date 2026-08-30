@@ -535,7 +535,18 @@ const AdminEventsPage = () => {
         <EventsList>
           {events.map(event => (
             <EventItem key={event.id}>
-              {event.posterUrl && <EventPoster src={getOptimizedUrl(event.posterUrl, 300, 80)} alt={event.name} loading="lazy" />}
+              {event.posterUrl && (
+                <EventPoster 
+                  src={getOptimizedUrl(event.posterUrl, 300, 80)} 
+                  alt={event.name} 
+                  loading="lazy" 
+                  onError={(e) => {
+                    if (event.posterUrl && e.target.src !== event.posterUrl) {
+                      e.target.src = event.posterUrl;
+                    }
+                  }}
+                />
+              )}
               <EventInfo>
                 <h3>
                   {event.name}
@@ -667,7 +678,16 @@ const AdminEventsPage = () => {
                   <Label>Event Poster</Label>
                   {formData.posterUrl && !posterFile && (
                     <div style={{ position: 'relative', width: '150px', marginBottom: '10px' }}>
-                      <img src={getOptimizedUrl(formData.posterUrl, 200, 80)} alt="Current Poster" style={{ width: '100%', borderRadius: '8px' }} />
+                      <img 
+                        src={getOptimizedUrl(formData.posterUrl, 200, 80)} 
+                        alt="Current Poster" 
+                        style={{ width: '100%', borderRadius: '8px' }} 
+                        onError={(e) => {
+                          if (formData.posterUrl && e.target.src !== formData.posterUrl) {
+                            e.target.src = formData.posterUrl;
+                          }
+                        }}
+                      />
                       <button 
                         type="button" 
                         onClick={() => setFormData({ ...formData, posterUrl: '' })}
@@ -696,7 +716,16 @@ const AdminEventsPage = () => {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '10px' }}>
                       {formData.photos.map((photoUrl, idx) => (
                         <div key={idx} style={{ position: 'relative', width: '100px', height: '100px' }}>
-                          <img src={getOptimizedUrl(photoUrl, 150, 80)} alt={`Event Photo ${idx+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
+                          <img 
+                            src={getOptimizedUrl(photoUrl, 150, 80)} 
+                            alt={`Event Photo ${idx+1}`} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} 
+                            onError={(e) => {
+                              if (photoUrl && e.target.src !== photoUrl) {
+                                e.target.src = photoUrl;
+                              }
+                            }}
+                          />
                           <button 
                             type="button" 
                             onClick={() => {

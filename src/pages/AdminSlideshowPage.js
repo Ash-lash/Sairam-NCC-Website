@@ -304,7 +304,16 @@ const SortableImage = ({ image, index, onDelete, onEdit }) => {
     const style = { transform: CSS.Transform.toString(transform), transition };
     return (
         <ImageCard ref={setNodeRef} style={style} {...attributes} {...listeners}>
-            <img src={getOptimizedUrl(image.imageUrl, 400, 70)} alt={`Slide ${index + 1}`} loading="lazy" />
+            <img 
+              src={getOptimizedUrl(image.imageUrl, 400, 70)} 
+              alt={`Slide ${index + 1}`} 
+              loading="lazy" 
+              onError={(e) => {
+                if (e.target.src !== image.imageUrl) {
+                  e.target.src = image.imageUrl;
+                }
+              }}
+            />
             <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0.5rem', background: 'rgba(0,0,0,0.5)', color: 'white', fontSize: '0.8rem' }}>
                 {image.description || 'No description'}
             </div>

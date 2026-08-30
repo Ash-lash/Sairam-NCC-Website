@@ -943,6 +943,11 @@ const AdminAchievementsPage = () => {
                     alt={item.cadetName}
                     loading="lazy"
                     style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', marginRight: '1rem' }}
+                    onError={(e) => {
+                      if (item.cadetPhotoUrl && e.target.src !== item.cadetPhotoUrl) {
+                        e.target.src = item.cadetPhotoUrl;
+                      }
+                    }}
                   />
                   <div style={{ flex: 1 }}>
                     <h4 style={{ margin: 0, fontSize: '1rem', color: '#1e293b' }}>{item.rank} {item.cadetName}</h4>
@@ -976,7 +981,17 @@ const AdminAchievementsPage = () => {
                   <CardHeader>
                     <Avatar style={{ borderRadius: item.isGroup ? '8px' : '50%' }}>
                       {(item.isGroup ? item.groupPhotoUrl : item.cadetPhotoUrl) ? (
-                        <img src={getOptimizedUrl(item.isGroup ? item.groupPhotoUrl : item.cadetPhotoUrl, 160, 80)} alt="Preview" loading="lazy" />
+                        <img 
+                          src={getOptimizedUrl(item.isGroup ? item.groupPhotoUrl : item.cadetPhotoUrl, 160, 80)} 
+                          alt="Preview" 
+                          loading="lazy" 
+                          onError={(e) => {
+                            const fallbackUrl = item.isGroup ? item.groupPhotoUrl : item.cadetPhotoUrl;
+                            if (fallbackUrl && e.target.src !== fallbackUrl) {
+                              e.target.src = fallbackUrl;
+                            }
+                          }}
+                        />
                       ) : (
                         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94A3B8' }}>
                           <ImageIcon size={24} />

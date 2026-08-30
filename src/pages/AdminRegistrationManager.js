@@ -565,7 +565,8 @@ const AdminRegistrationManager = () => {
     const CADET_SCHEMA = {
       Name: ['Name', 'Cadet Name', 'Full Name', 'Name of Cadet'],
       rank: ['Rank', 'Cdt Rank', 'Designation'],
-      regimentalNo: ['Regimental No', 'Reg No', 'Registration No', 'Regimental Number'],
+      regimentalNo: ['Regimental No', 'Reg No', 'Regimental Number'],
+      registrationNo: ['Registration No', 'Registration Number'],
       secID: ['SEC ID', 'Student ID', 'Roll No', 'College ID'],
       dept: ['Dept', 'Department', 'Branch'],
       section: ['Section', 'Sec', 'Class Section'],
@@ -697,6 +698,7 @@ const AdminRegistrationManager = () => {
               'Rank': cadet.rank || 'N/A',
               'Name': cadet.Name || 'N/A',
               'Regimental Number': cadet.regimentalNo || 'N/A',
+              'Registration Number': cadet.registrationNo || 'N/A',
               'Department': cadet.dept || 'N/A',
               'Section': cadet.section || 'N/A',
               'Student ID': cadet.secID || 'N/A',
@@ -862,6 +864,7 @@ const AdminRegistrationManager = () => {
                 <th>Batch</th>
                 <th>Name</th>
                 <th>Regimental No</th>
+                  <th>Registration No</th>
                 <th>College ID</th>
                 <th style={{ textAlign: 'center' }}>Action</th>
               </tr>
@@ -874,6 +877,7 @@ const AdminRegistrationManager = () => {
                   <td>{reg.Batch || '-'}</td>
                   <td>{reg.Name || '-'}</td>
                   <td>{reg.regimentalNo || '-'}</td>
+                    <td>{reg.registrationNo || '-'}</td>
                   <td>{reg.secID || '-'}</td>
                   <td style={{ textAlign: 'center' }}>
                     <ActionButton variant="danger" onClick={async () => {
@@ -1057,3 +1061,4 @@ const AdminRegistrationManager = () => {
 };
 
 export default AdminRegistrationManager;
+

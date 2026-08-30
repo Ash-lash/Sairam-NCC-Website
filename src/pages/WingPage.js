@@ -868,7 +868,7 @@ const Skeleton = styled.div`
   }
 `;
 
-const SortableCadetCard = ({ cadet, isAdmin, onCadetClick, onAdminEdit, onDeleteCadet, useRoundedFrames, isSelected, onToggleSelect }) => {
+const SortableCadetCard = React.memo(({ cadet, isAdmin, onCadetClick, onAdminEdit, onDeleteCadet, useRoundedFrames, isSelected, onToggleSelect }) => {
   // Simple: just track if the image failed — no hiding, no timers
   const [imgFailed, setImgFailed] = useState(false);
   const {
@@ -955,12 +955,18 @@ const SortableCadetCard = ({ cadet, isAdmin, onCadetClick, onAdminEdit, onDelete
       <div onClick={() => onCadetClick(cadet)} style={{ paddingBottom: '0.75rem', cursor: 'pointer' }}>
         <CadetName>{cadet.Name}</CadetName>
         <CadetInfo>{cadet.secID}</CadetInfo>
-        {cadet.regimentalNo && <CadetInfo>Reg No: {cadet.regimentalNo}</CadetInfo>}
+        {cadet.regimentalNo && <CadetInfo>Regimental No: {cadet.regimentalNo}</CadetInfo>}
+          {cadet.registrationNo && <CadetInfo>Registration No: {cadet.registrationNo}</CadetInfo>}
         <CadetInfo>{`${cadet.dept}, Sec ${cadet.section} `}</CadetInfo>
       </div>
-    </CadetCard>
-  );
-};
+      </CadetCard>
+    );
+  }, (prevProps, nextProps) => {
+    return prevProps.cadet.id === nextProps.cadet.id &&
+           prevProps.isAdmin === nextProps.isAdmin &&
+           prevProps.useRoundedFrames === nextProps.useRoundedFrames &&
+           prevProps.isSelected === nextProps.isSelected;
+  });
 
 // BatchDetails Component
 const BatchDetails = ({ wing, cadetsByRank, loading, onCadetClick, onAdminEdit, onDeleteCadet, onDragEnd, useRoundedFrames, selectedIds, onToggleSelect }) => {
@@ -1514,6 +1520,7 @@ const WingPage = () => {
               'Rank': rank,
               'Name': cadet.Name || 'N/A',
               'Regimental Number': cadet.regimentalNo || 'N/A',
+                'Registration Number': cadet.registrationNo || 'N/A',
               'Department': cadet.dept || 'N/A',
               'Section': cadet.section || 'N/A',
               'Student ID': cadet.secID || 'N/A',
@@ -1608,6 +1615,7 @@ const WingPage = () => {
         'Rank': cadet.rank || 'N/A',
         'Name': cadet.Name || 'N/A',
         'Regimental Number': cadet.regimentalNo || 'N/A',
+                'Registration Number': cadet.registrationNo || 'N/A',
         'Department': cadet.dept || 'N/A',
         'Section': cadet.section || 'N/A',
         'Student ID': cadet.secID || 'N/A',
@@ -1945,4 +1953,7 @@ const WingPage = () => {
   );
 };
 export default WingPage;
+
+
+
 

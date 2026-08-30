@@ -361,7 +361,7 @@ const DragHandle = styled.div`
   &:active { cursor: grabbing; }
 `;
 
-const SortableCadetCard = ({ cadet, isAdmin, onCadetClick, onAdminEdit }) => {
+const SortableCadetCard = React.memo(({ cadet, isAdmin, onCadetClick, onAdminEdit }) => {
   const {
     attributes,
     listeners,
@@ -460,16 +460,22 @@ const SortableCadetCard = ({ cadet, isAdmin, onCadetClick, onAdminEdit }) => {
               <StudentID>ID: {cadet.studentID || cadet.secID}</StudentID>
             )}
             {cadet.regimentalNo && (
-              <StudentID>Reg No: {cadet.regimentalNo}</StudentID>
-            )}
+                <StudentID>Regimental No: {cadet.regimentalNo}</StudentID>
+              )}
+              {cadet.registrationNo && (
+                <StudentID>Registration No: {cadet.registrationNo}</StudentID>
+              )}
           <p style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.4rem', fontWeight: 500 }}>
             {cadet.Wing} Wing | Batch {cadet.Batch}
           </p>
         </CadetInfo>
       </div>
-    </CadetCard>
-  );
-};
+      </CadetCard>
+    );
+  }, (prevProps, nextProps) => {
+    return prevProps.cadet.id === nextProps.cadet.id &&
+           prevProps.isAdmin === nextProps.isAdmin;
+  });
 
 const DepartmentCadetsPage = () => {
   const navigate = useNavigate();
@@ -749,6 +755,7 @@ const DepartmentCadetsPage = () => {
         'Rank': cadet.rank,
         'Name': cadet.Name || cadet.name || 'N/A',
         'Regimental Number': cadet.regimentalNo || 'N/A',
+          'Registration Number': cadet.registrationNo || 'N/A',
         'Student ID': cadet.studentID || cadet.secID || 'N/A',
         'Batch': cadet.Batch || 'N/A',
         'Wing': cadet.Wing || 'N/A',
@@ -958,8 +965,11 @@ const DepartmentCadetsPage = () => {
                                   <StudentID>ID: {cadet.studentID || cadet.secID}</StudentID>
                                 )}
                                 {cadet.regimentalNo && (
-                                  <StudentID>Reg No: {cadet.regimentalNo}</StudentID>
-                                )}
+                <StudentID>Regimental No: {cadet.regimentalNo}</StudentID>
+              )}
+              {cadet.registrationNo && (
+                <StudentID>Registration No: {cadet.registrationNo}</StudentID>
+              )}
                               <p style={{ fontSize: '0.9rem', color: '#64748b', marginTop: '0.4rem', fontWeight: 500 }}>
                                 {cadet.Wing} Wing | Batch {cadet.Batch}
                               </p>
@@ -1198,4 +1208,5 @@ const DepartmentCadetsPage = () => {
 };
 
 export default DepartmentCadetsPage;
+
 

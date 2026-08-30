@@ -178,7 +178,8 @@ const CadetDetailModal = ({ isOpen, onClose, cadet }) => {
                 </EmptyStateText>
                 <DetailsContainer>
                   {cadet.rank && <DetailItem><DetailLabel>Rank:</DetailLabel><DetailValue>{getFullRank(cadet.rank)}</DetailValue></DetailItem>}
-                  {cadet.regimentalNo && <DetailItem><DetailLabel>Registration No:</DetailLabel><DetailValue>{cadet.regimentalNo}</DetailValue></DetailItem>}
+                  {cadet.regimentalNo && <DetailItem><DetailLabel>Regimental No:</DetailLabel><DetailValue>{cadet.regimentalNo}</DetailValue></DetailItem>}
+                    {cadet.registrationNo && <DetailItem><DetailLabel>Registration No:</DetailLabel><DetailValue>{cadet.registrationNo}</DetailValue></DetailItem>}
                   {cadet.secID && <DetailItem><DetailLabel>SEC ID:</DetailLabel><DetailValue>{cadet.secID}</DetailValue></DetailItem>}
                   {cadet.dept && <DetailItem><DetailLabel>Department:</DetailLabel><DetailValue>{cadet.dept}</DetailValue></DetailItem>}
                   {cadet.section && <DetailItem><DetailLabel>Section:</DetailLabel><DetailValue>{cadet.section}</DetailValue></DetailItem>}

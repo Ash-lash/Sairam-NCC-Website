@@ -451,7 +451,16 @@ const AdminLeadershipPage = () => {
                 <ImageContainer>
                   <ImagePreview>
                     {leader.imageUrl ? (
-                      <img src={getOptimizedUrl(leader.imageUrl, 300)} alt="Preview" loading="lazy" />
+                      <img 
+                        src={getOptimizedUrl(leader.imageUrl, 300)} 
+                        alt="Preview" 
+                        loading="lazy" 
+                        onError={(e) => {
+                          if (leader.imageUrl && e.target.src !== leader.imageUrl) {
+                            e.target.src = leader.imageUrl;
+                          }
+                        }}
+                      />
                     ) : (
                       <div className="empty"><Upload size={32} /></div>
                     )}

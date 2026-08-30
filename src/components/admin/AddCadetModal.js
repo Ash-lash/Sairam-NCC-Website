@@ -161,13 +161,12 @@ const UploadSuccess = styled.div`
 `;
 // ---
 
-// --- existing code ---
-
 const AddCadetModal = ({ isOpen, onClose, wing, batch, onComplete }) => {
   const [name, setName] = useState('');
   const [rank, setRank] = useState('');
   const [secID, setSecID] = useState('');
   const [regimentalNo, setRegimentalNo] = useState('');
+  const [registrationNo, setRegistrationNo] = useState('');
   const [dept, setDept] = useState('');
   const [section, setSection] = useState('');
   const [photoFile, setPhotoFile] = useState(null);
@@ -183,6 +182,7 @@ const AddCadetModal = ({ isOpen, onClose, wing, batch, onComplete }) => {
     if (isOpen) {
       setName(''); setRank(''); setSecID('');
       setRegimentalNo('');
+      setRegistrationNo('');
       setDept(''); setSection(''); setPhotoFile(null); setPdfFile(null);
       setMessage(''); setIsSubmitting(false);
       setShowCropper(false);
@@ -232,7 +232,7 @@ const AddCadetModal = ({ isOpen, onClose, wing, batch, onComplete }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !rank || !secID || !regimentalNo || !dept || !section) {
+    if (!name || !rank || !secID || !regimentalNo || !registrationNo || !dept || !section) {
       setMessage('All text fields are required.');
       return;
     }
@@ -255,6 +255,7 @@ const AddCadetModal = ({ isOpen, onClose, wing, batch, onComplete }) => {
         Name: name, rank: rank.toUpperCase(), Wing: formattedWing, Batch: batch,
         secID,
         regimentalNo,
+        registrationNo,
         dept, section, photoURL, pdfURL
       };
 
@@ -284,8 +285,13 @@ const AddCadetModal = ({ isOpen, onClose, wing, batch, onComplete }) => {
               <FormGroup><Label>SEC ID</Label><Input type="text" value={secID} onChange={(e) => setSecID(e.target.value)} required /></FormGroup>
 
               <FormGroup>
-                <Label>Registration No</Label>
+                <Label>Regimental No</Label>
                 <Input type="text" value={regimentalNo} onChange={(e) => setRegimentalNo(e.target.value)} required />
+              </FormGroup>
+
+              <FormGroup>
+                <Label>Registration No</Label>
+                <Input type="text" value={registrationNo} onChange={(e) => setRegistrationNo(e.target.value)} required />
               </FormGroup>
 
               <FormGroup><Label>Rank</Label><Input type="text" value={rank} onChange={(e) => setRank(e.target.value)} required /></FormGroup>
