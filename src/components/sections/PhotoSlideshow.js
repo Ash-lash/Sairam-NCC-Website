@@ -17,6 +17,10 @@ const SlideshowContainer = styled.section`
   padding: ${props => props.$isModal ? '0' : '6rem 0'};
   width: ${props => props.$isModal ? '100%' : '100vw'};
   position: relative;
+  left: ${props => props.$isModal ? 'auto' : '50%'};
+  right: ${props => props.$isModal ? 'auto' : '50%'};
+  margin-left: ${props => props.$isModal ? '0' : '-50vw'};
+  margin-right: ${props => props.$isModal ? '0' : '-50vw'};
   overflow: hidden;
   display: flex;
   justify-content: center;

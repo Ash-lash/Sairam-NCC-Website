@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, FileText, Award, Shield, Target } from 'lucide-react';
 import { getOptimizedUrl } from '../../utils/imageOptimizer';
 import OptimizedImage from '../common/OptimizedImage';
+import MorphSlider from '../common/MorphSlider';
 
 const GOLD = '#FFD700';
 const DEEP_BLUE = '#020617';
@@ -307,13 +308,29 @@ const GroupAchievementCard = ({ item, onReportClick }) => {
               </StatsGrid>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: '4rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '4rem' }}>
-                <div>
+                <div style={{ width: '100%', overflow: 'hidden' }}>
                   <div style={{ color: GOLD, fontWeight: 900, marginBottom: '2rem', textTransform: 'uppercase', letterSpacing: '4px', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <Target size={24} /> Mission Report
                   </div>
                   <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '1.25rem', lineHeight: 1.8, fontWeight: 300, fontFamily: 'Outfit, sans-serif' }}>
                     {item.description}
                   </p>
+
+                  {item.campPhotos && item.campPhotos.length > 0 && (
+                    <div style={{ marginTop: '3rem', width: '100%', height: '400px', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,215,0,0.1)' }}>
+                      <MorphSlider 
+                        items={item.campPhotos.map(url => ({ image: url, fallbackImage: url, caption: '' }))} 
+                        transition="melt" 
+                        intensity={0.55} 
+                        aberration={0.35} 
+                        drift={0.4} 
+                        duration={2.5} 
+                        autoplay 
+                        autoplayDelay={4} 
+                        radius={16} 
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>

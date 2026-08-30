@@ -5,6 +5,7 @@ import { Award, FileText, Target, Shield, User } from 'lucide-react';
 import { getFullRank } from '../../rankStructure';
 import { getOptimizedUrl } from '../../utils/imageOptimizer';
 import OptimizedImage from '../common/OptimizedImage';
+import MorphSlider from '../common/MorphSlider';
 
 const GOLD = '#FFD700';
 const DEEP_BLUE = '#020617';
@@ -305,9 +306,25 @@ const IndividualAchievementCard = ({ item, onReportClick }) => {
               <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '4rem' }}>
                 <DescriptionBox>
                   <div className="icon"><Target size={24} /></div>
-                  <div>
+                  <div style={{ width: '100%', overflow: 'hidden' }}>
                     <div style={{ color: GOLD, fontWeight: 900, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '2px' }}>Honor Report</div>
                     <p>{item.description}</p>
+
+                    {item.campPhotos && item.campPhotos.length > 0 && (
+                      <div style={{ marginTop: '3rem', width: '100%', height: '400px', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,215,0,0.1)' }}>
+                        <MorphSlider 
+                          items={item.campPhotos.map(url => ({ image: url, fallbackImage: url, caption: '' }))} 
+                          transition="melt" 
+                          intensity={0.55} 
+                          aberration={0.35} 
+                          drift={0.4} 
+                          duration={2.5} 
+                          autoplay 
+                          autoplayDelay={4} 
+                          radius={16} 
+                        />
+                      </div>
+                    )}
                   </div>
                 </DescriptionBox>
 

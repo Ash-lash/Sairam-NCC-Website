@@ -580,6 +580,7 @@ const AdminAchievementsPage = () => {
   const [groupPhotoFile, setGroupPhotoFile] = useState(null); // New state
   const [reportFile, setReportFile] = useState(null);
   const [memberFiles, setMemberFiles] = useState({}); // { index: File }
+  const [campPhotosFiles, setCampPhotosFiles] = useState([]);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -676,6 +677,7 @@ const AdminAchievementsPage = () => {
     setGroupPhotoFile(null);
     setReportFile(null);
     setMemberFiles({});
+    setCampPhotosFiles([]);
     setShowCropper(false);
     setCroppingImage(null);
     setPendingCropField(null);
@@ -750,9 +752,11 @@ const AdminAchievementsPage = () => {
       isGroup: achievement.isGroup || false,
       participants: achievement.participants || '',
       groupMembers: achievement.groupMembers || [],
-      cadetCount: achievement.cadetCount || (achievement.groupMembers ? achievement.groupMembers.length : 0)
+      cadetCount: achievement.cadetCount || (achievement.groupMembers ? achievement.groupMembers.length : 0),
+      campPhotos: achievement.campPhotos || []
     });
     setMemberFiles({});
+    setCampPhotosFiles([]);
     setShowModal(true);
   };
 
@@ -793,12 +797,22 @@ const AdminAchievementsPage = () => {
         }
       }
 
+      let campPhotos = [...(formData.campPhotos || [])];
+      if (campPhotosFiles.length > 0) {
+        console.log("Uploading camp photos...");
+        for (let file of campPhotosFiles) {
+           const url = await uploadFile(file);
+           campPhotos.push(url);
+        }
+      }
+
       const achievementData = {
         ...formData,
         cadetPhotoUrl: cadetPhotoUrl || '',
         groupPhotoUrl: groupPhotoUrl || '',
         reportUrl: reportUrl || '',
         groupMembers: updatedMembers,
+        campPhotos: campPhotos,
         cadetCount: formData.isGroup ? updatedMembers.length : 1,
         updatedAt: new Date(),
       };
@@ -1372,6 +1386,52 @@ const AdminAchievementsPage = () => {
                           <span>
                             {reportFile ? reportFile.name : (formData.reportUrl ? 'Change Report' : 'Upload Achievement Report (PDF)')}
                           </span>
+                        </FileUploadBox>
+                      </FormGroup>
+                      <FormGroup style={{ gridColumn: '1 / -1' }}>
+                        <Label>Camp Photos (Optional Slideshow)</Label>
+                        
+                        {formData.campPhotos && formData.campPhotos.length > 0 && (
+                          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                            {formData.campPhotos.map((url, i) => (
+                              <div key={i} style={{ position: 'relative' }}>
+                                <img src={url} alt={`Camp ${i}`} style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px' }} />
+                                <button type="button" onClick={() => {
+                                  const newPhotos = formData.campPhotos.filter((_, idx) => idx !== i);
+                                  setFormData({ ...formData, campPhotos: newPhotos });
+                                }} style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'red', color: 'white', borderRadius: '50%', width: '20px', height: '20px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>&times;</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {campPhotosFiles.length > 0 && (
+                          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                            {Array.from(campPhotosFiles).map((file, i) => (
+                              <div key={i} style={{ position: 'relative' }}>
+                                <div style={{ width: '100px', height: '100px', background: '#e2e8f0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', textAlign: 'center', padding: '0.5rem', color: '#475569' }}>
+                                  {file.name}
+                                </div>
+                                <button type="button" onClick={() => {
+                                  const newFiles = Array.from(campPhotosFiles).filter((_, idx) => idx !== i);
+                                  setCampPhotosFiles(newFiles);
+                                }} style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'red', color: 'white', borderRadius: '50%', width: '20px', height: '20px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>&times;</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <input
+                          type="file"
+                          id="camp-photos"
+                          multiple
+                          accept="image/*"
+                          onChange={(e) => setCampPhotosFiles([...campPhotosFiles, ...Array.from(e.target.files)])}
+                          style={{ display: 'none' }}
+                        />
+                        <FileUploadBox htmlFor="camp-photos">
+                          <ImageIcon size={24} />
+                          <span>Select Camp Photos to Add</span>
                         </FileUploadBox>
                       </FormGroup>
                     </FormGrid>
