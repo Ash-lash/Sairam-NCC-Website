@@ -30,6 +30,12 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null;
     }
 
+    // Join Sairam NCC registrations
+    match /registrations/{regId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
     // Blogs Public Interactions
     match /blogs/{blogId} {
       // Allow update if only views and/or likes are being modified
