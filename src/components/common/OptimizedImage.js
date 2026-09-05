@@ -84,7 +84,8 @@ const OptimizedImage = memo(({
     aspectRatio,
     width = 800,
     quality = 80,
-    loading = 'lazy',
+    loading,
+    priority = false,
     fetchpriority,
     sizes,
     ...rest
@@ -96,8 +97,6 @@ const OptimizedImage = memo(({
     const { primaryUrl, srcSet } = useMemo(() => {
         if (!src) return { primaryUrl: '', srcSet: '' };
         const base = getOptimizedUrl(src, width, quality);
-        // By removing retina and hiDpi srcSet, we reduce concurrent requests to wsrv.nl by 66%
-        // which prevents rate-limiting and massive slowdowns.
         return {
             primaryUrl: base,
             srcSet: undefined
@@ -110,18 +109,16 @@ const OptimizedImage = memo(({
         setIsLoaded(false);
     }, [primaryUrl]);
 
-    // Fast-path: Check if image is already completely loaded (from cache).
-    // This avoids displaying the skeleton entirely for instant renders.
+    // Fast-path: Check if image is already cached/complete
     useIsomorphicLayoutEffect(() => {
         if (!src) return;
-        if (imgRef.current && imgRef.current.complete) {
+        if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
             setIsLoaded(true);
         } else {
-            // Delay showing the skeleton by 50ms so instant loads never flicker.
-            const timer = setTimeout(() => setShowSkeleton(true), 50);
+            const timer = setTimeout(() => setShowSkeleton(true), 40);
             return () => clearTimeout(timer);
         }
-    }, [src]);
+    }, [src, imgSrc]);
 
     const handleLoad = (e) => {
         setIsLoaded(true);
@@ -129,15 +126,18 @@ const OptimizedImage = memo(({
     };
     
     const handleError = (e) => {
-        // If the thumbnail 404s (e.g. extension hasn't generated it yet), fallback to original
+        // If CDN proxy encounters an edge case, fallback cleanly to direct Firebase URL
         if (imgSrc !== src) {
             setImgSrc(src);
         } else if (onError) {
-            onError(e); // Only call the parent's onError if even the original fails
+            onError(e);
         }
     };
 
     if (!src) return null;
+
+    const effectiveLoading = loading || (priority ? 'eager' : 'lazy');
+    const effectivePriority = fetchpriority || (priority ? 'high' : 'auto');
 
     return (
         <ImageContainer
@@ -153,9 +153,9 @@ const OptimizedImage = memo(({
                 srcSet={srcSet}
                 sizes={sizes || `${width}px`}
                 alt={alt}
-                loading={loading}
+                loading={effectiveLoading}
                 decoding="async"
-                fetchpriority={fetchpriority}
+                fetchPriority={effectivePriority}
                 onLoad={handleLoad}
                 onError={handleError}
                 $isLoaded={isLoaded}

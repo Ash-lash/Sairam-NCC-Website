@@ -18,114 +18,78 @@ const getDpr = () => {
     return clamp(window.devicePixelRatio || 1, 1, 2);
 };
 
-// Proxy is ON by default.
-const IMAGE_PROXY_ENABLED = process.env.REACT_APP_IMAGE_PROXY !== 'off';
+// Bucket widths to maximize CDN cache hit ratio across different screen sizes
+const WIDTH_BUCKETS = [150, 320, 480, 640, 800, 1080, 1440, 1920];
+const snapWidth = (w) => WIDTH_BUCKETS.find((b) => b >= w) || 1920;
 
 const isProxiableUrl = (url) => {
-    if (!url) return false;
+    if (!url || typeof url !== 'string') return false;
     const s = url.toLowerCase();
 
-    // Do not proxy if it's already a wsrv.nl URL or a data URI
-    if (s.includes('wsrv.nl') || s.startsWith('data:')) return false;
+    // Do not proxy if it's already a wsrv.nl URL, SVG, or data URI
+    if (s.includes('wsrv.nl') || s.startsWith('data:') || s.endsWith('.svg') || s.includes('.svg?')) {
+        return false;
+    }
 
     return (
-        s.includes('firebasestorage') ||
-        s.includes('googleapis.com') ||
+        s.includes('firebasestorage.googleapis.com') ||
+        s.includes('firebasestorage.app') ||
+        s.includes('storage.googleapis.com') ||
         s.includes('googleusercontent') ||
-        s.includes('imgur.com') ||
         s.includes('cloudinary') ||
-        s.startsWith('https://')
+        s.includes('supabase.co') ||
+        s.startsWith('https://') ||
+        s.startsWith('http://')
     );
 };
 
 /**
  * Returns a CDN-optimised URL for the image.
- * @param {string} originalUrl - The raw image URL (usually Firebase Storage).
- * @param {number} [width=800] - Desired CSS-pixel width (auto-multiplied by DPR).
- * @param {number} [quality=80] - JPEG/WebP quality 1-100.
+ * Uses high-performance Cloudflare-backed proxy with:
+ *  - Deterministic URLs (no random cache busters) for 1-year CDN caching
+ *  - Width snapping to maximize global CDN cache hit ratio
+ *  - Modern WebP conversion and quality optimization
+ *
+ * @param {string} originalUrl - The raw image URL.
+ * @param {number} [width=800] - Desired CSS-pixel width.
+ * @param {number} [quality=80] - WebP quality 1-100.
  * @returns {string}
  */
 export const getOptimizedUrl = (originalUrl, width = 800, quality = 80) => {
-    if (!originalUrl) return originalUrl;
+    if (!originalUrl) return '';
     if (!isProxiableUrl(originalUrl)) return originalUrl;
-    
-    // Only apply Firebase Extension logic if it's a Firebase Storage URL
-    if (originalUrl.startsWith('https://firebasestorage.googleapis.com')) {
-        try {
-            const urlObj = new URL(originalUrl);
-            const oIndex = urlObj.pathname.indexOf('/o/');
-            if (oIndex !== -1) {
-                const objectPathStr = urlObj.pathname.substring(oIndex + 3);
-                const pathParts = objectPathStr.split('%2F');
-                const lastPart = pathParts.pop();
-                
-                const dotIndex = lastPart.lastIndexOf('.');
-                if (dotIndex !== -1) {
-                    const name = lastPart.substring(0, dotIndex);
-                    // Determine which thumbnail size to request
-                    const safeWidth = Math.max(1, Math.round(width * (window.devicePixelRatio || 1)));
-                    const size = safeWidth <= 400 ? '400x400' : '800x800';
-                    const newLastPart = `${name}_${size}.webp`;
-                    
-                    pathParts.push(newLastPart);
-                    const newObjectPathStr = 'thumbnails%2F' + pathParts.join('%2F');
-                    
-                    urlObj.pathname = urlObj.pathname.substring(0, oIndex + 3) + newObjectPathStr;
-                    urlObj.searchParams.delete('token');
-                    if (!urlObj.searchParams.has('alt')) {
-                        urlObj.searchParams.set('alt', 'media');
-                    }
-                    
-                    return urlObj.toString();
-                }
-            }
-        } catch (e) {
-            // Fallback to original
-        }
-    }
 
-    return originalUrl;
+    const dpr = getDpr();
+    const targetWidth = snapWidth(Math.round(width * dpr));
+    const targetQuality = targetWidth >= 1080 ? Math.max(quality - 10, 65) : Math.min(quality, 85);
+
+    const params = new URLSearchParams({
+        url: originalUrl,
+        w: String(targetWidth),
+        q: String(targetQuality),
+        output: 'webp'
+    });
+
+    return `https://wsrv.nl/?${params.toString()}`;
 };
 
 /**
- * Returns a tiny (20px wide, heavily compressed) blur placeholder.
- * Use this as a CSS background while the full image loads.
+ * Returns a tiny (24px wide, heavily blurred) WebP placeholder.
+ * Used for instant blur-up while full image downloads.
  */
 export const getBlurUrl = (originalUrl) => {
-    if (!originalUrl) return originalUrl;
+    if (!originalUrl) return '';
     if (!isProxiableUrl(originalUrl)) return originalUrl;
 
-    if (originalUrl.startsWith('https://firebasestorage.googleapis.com')) {
-        try {
-            const urlObj = new URL(originalUrl);
-            const oIndex = urlObj.pathname.indexOf('/o/');
-            if (oIndex !== -1) {
-                const objectPathStr = urlObj.pathname.substring(oIndex + 3);
-                const pathParts = objectPathStr.split('%2F');
-                const lastPart = pathParts.pop();
-                
-                const dotIndex = lastPart.lastIndexOf('.');
-                if (dotIndex !== -1) {
-                    const name = lastPart.substring(0, dotIndex);
-                    // Use the smallest generated thumbnail for the blur placeholder
-                    const newLastPart = `${name}_400x400.webp`;
-                    
-                    pathParts.push(newLastPart);
-                    const newObjectPathStr = 'thumbnails%2F' + pathParts.join('%2F');
-                    
-                    urlObj.pathname = urlObj.pathname.substring(0, oIndex + 3) + newObjectPathStr;
-                    urlObj.searchParams.delete('token');
-                    if (!urlObj.searchParams.has('alt')) {
-                        urlObj.searchParams.set('alt', 'media');
-                    }
-                    
-                    return urlObj.toString();
-                }
-            }
-        } catch (e) {}
-    }
+    const params = new URLSearchParams({
+        url: originalUrl,
+        w: '24',
+        q: '30',
+        blur: '5',
+        output: 'webp'
+    });
 
-    return originalUrl;
+    return `https://wsrv.nl/?${params.toString()}`;
 };
 
 

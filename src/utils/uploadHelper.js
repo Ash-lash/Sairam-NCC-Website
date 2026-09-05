@@ -1,5 +1,6 @@
 import { ref, uploadBytes, uploadString, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase";
+import imageCompression from "browser-image-compression";
 
 const readFileAsDataURL = (file) => {
     return new Promise((resolve, reject) => {
@@ -11,37 +12,60 @@ const readFileAsDataURL = (file) => {
 };
 
 /**
- * Universal Firebase Upload Helper
- * - Preserves original image quality and file type
- * - Uses uploadBytes by default (faster + less memory)
- * - Falls back to Base64 upload for rare image edge cases
+ * Universal Firebase Upload Helper with Auto-Optimization:
+ * - Automatically compresses images to crisp WebP format (max 1920px, ~100KB)
+ * - Sets 1-year immutable Cache-Control headers on Firebase Storage
+ * - Falls back cleanly if compression or direct upload encounters edge cases
  */
 export const uploadFile = async (file, setMessage = () => { }) => {
     if (!file) return "";
 
     const isImage = file.type.startsWith("image/");
+    const isSvg = file.type.includes("svg") || file.name?.toLowerCase().endsWith(".svg");
     const typeLabel = isImage ? "Photo" : "Document";
 
-    setMessage(`Uploading ${typeLabel}...`);
-
-    const fileExt =
+    let uploadPayload = file;
+    let contentType = file.type || "application/octet-stream";
+    let fileExt =
         file?.name?.split(".").pop()?.toLowerCase() ||
         file?.type?.split("/").pop()?.toLowerCase() ||
         (isImage ? "jpg" : "bin");
+
+    if (isImage && !isSvg) {
+        try {
+            setMessage("Optimizing photo for instant loading...");
+            const options = {
+                maxSizeMB: 0.8,
+                maxWidthOrHeight: 1920,
+                useWebWorker: true,
+                fileType: "image/webp",
+                initialQuality: 0.85
+            };
+            const compressed = await imageCompression(file, options);
+            if (compressed && compressed.size < file.size) {
+                uploadPayload = compressed;
+                contentType = "image/webp";
+                fileExt = "webp";
+            }
+        } catch (compressionErr) {
+            console.warn("Client-side image compression bypassed:", compressionErr);
+        }
+    }
+
+    setMessage(`Uploading ${typeLabel}...`);
 
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
     const folder = isImage ? "images" : "documents";
     const storageRef = ref(storage, `${folder}/${fileName}`);
 
+    const metadata = {
+        contentType,
+        cacheControl: "public, max-age=31536000, immutable",
+        contentDisposition: `inline; filename="${fileName}"`
+    };
+
     try {
-        const snapshot = await uploadBytes(
-            storageRef,
-            file,
-            {
-                contentType: file.type || 'application/octet-stream',
-                contentDisposition: `inline; filename="${fileName}"`
-            }
-        );
+        const snapshot = await uploadBytes(storageRef, uploadPayload, metadata);
         const downloadURL = await getDownloadURL(snapshot.ref);
         console.log(`${typeLabel} uploaded successfully:`, downloadURL);
         setMessage(`${typeLabel} uploaded!`);
@@ -49,10 +73,10 @@ export const uploadFile = async (file, setMessage = () => { }) => {
     } catch (err) {
         if (isImage) {
             try {
-                const dataUrl = await readFileAsDataURL(file);
-                const snapshot = await uploadString(storageRef, dataUrl, "data_url");
+                const dataUrl = await readFileAsDataURL(uploadPayload);
+                const snapshot = await uploadString(storageRef, dataUrl, "data_url", metadata);
                 const downloadURL = await getDownloadURL(snapshot.ref);
-                console.warn("Direct image upload failed. Fallback strategy used.", err);
+                console.warn("Direct image upload fallback succeeded.");
                 setMessage(`${typeLabel} uploaded!`);
                 return downloadURL;
             } catch (fallbackErr) {

@@ -15,7 +15,7 @@
  * (browser Cache Storage), not in Firebase.
  */
 
-const SW_VERSION = 'v5-2026-04';
+const SW_VERSION = 'v6-2026-fast';
 const IMAGE_CACHE = `ncc-images-${SW_VERSION}`;
 const MAX_IMAGE_ENTRIES = 300;
 
@@ -28,7 +28,8 @@ const isImageRequest = (request, url) => {
     href.includes('wsrv.nl') ||
     href.includes('firebasestorage') ||
     href.includes('googleusercontent') ||
-    href.includes('cloudinary')
+    href.includes('cloudinary') ||
+    href.includes('imagekit.io')
   ) {
     return true;
   }
@@ -70,7 +71,7 @@ const staleWhileRevalidate = async (request) => {
 
   const networkFetch = fetch(request)
     .then((response) => {
-      if (response && response.status === 200) {
+      if (response && (response.status === 200 || response.type === 'opaque')) {
         // Clone before the response body gets consumed by the return path.
         const clone = response.clone();
         cache.put(request, clone)
@@ -116,8 +117,17 @@ self.addEventListener('message', (event) => {
             try {
               const hit = await cache.match(u);
               if (hit) return;
-              const resp = await fetch(u, { mode: 'cors', credentials: 'omit' });
-              if (resp && resp.status === 200) await cache.put(u, resp);
+              try {
+                const resp = await fetch(u, { mode: 'cors', credentials: 'omit' });
+                if (resp && (resp.status === 200 || resp.type === 'opaque')) {
+                  await cache.put(u, resp);
+                  return;
+                }
+              } catch (_) {
+                // Fallback to no-cors for origins without explicit CORS headers
+                const respNoCors = await fetch(u, { mode: 'no-cors', credentials: 'omit' });
+                if (respNoCors) await cache.put(u, respNoCors);
+              }
             } catch (_) { /* ignore */ }
           })
         );

@@ -237,6 +237,7 @@ const LeadershipMessages = () => {
                 objectFit="cover"
                 objectPosition="top center"
                 style={{ width: '100%', height: '100%' }}
+                priority={index === 0}
               />
             </PhotoCard>
             <ContentCard $isReverse={isReverse}>

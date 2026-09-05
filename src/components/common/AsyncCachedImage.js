@@ -6,15 +6,24 @@ import { getOptimizedImageUrl } from '../../utils/imageKitHelper';
  * Uses ImageKit and progressive "blur-up" loading to load images seamlessly
  * just like Instagram or Amazon.
  */
-const AsyncCachedImage = ({ src, alt, className, style, width = 800, ...props }) => {
+const AsyncCachedImage = ({
+  src,
+  alt,
+  className,
+  style,
+  width = 800,
+  priority = false,
+  aspectRatio,
+  ...props
+}) => {
   const [isPlaceholderLoaded, setIsPlaceholderLoaded] = useState(false);
   const [isMainLoaded, setIsMainLoaded] = useState(false);
   const [mainImageError, setMainImageError] = useState(false);
 
-  // Generate the tiny, heavily blurred placeholder URL
-  const placeholderSrc = getOptimizedImageUrl(src, { width: 50, blur: 10, quality: 10 });
+  // Generate tiny blurred placeholder URL
+  const placeholderSrc = getOptimizedImageUrl(src, { width: 40, blur: 5, quality: 20 });
   
-  // Try to use the optimized WebP thumbnail first. If it fails (e.g., existing images before extension), fallback to original.
+  // High-speed CDN WebP URL with fallback
   const mainSrc = mainImageError ? src : getOptimizedImageUrl(src, { width });
 
   useEffect(() => {
@@ -23,24 +32,27 @@ const AsyncCachedImage = ({ src, alt, className, style, width = 800, ...props })
     setMainImageError(false);
   }, [src]);
 
+  if (!src) return null;
+
   return (
     <div
       className={`skeleton-loader ${className || ''}`}
       style={{
         position: 'relative',
         overflow: 'hidden',
-        minHeight: '100px',
-        backgroundColor: '#e0e0e0',
-        animation: (!isPlaceholderLoaded && !isMainLoaded) ? 'pulse 1.5s infinite' : 'none',
+        minHeight: style?.height || (aspectRatio ? 'auto' : '120px'),
+        aspectRatio: aspectRatio || style?.aspectRatio || 'auto',
+        backgroundColor: '#e2e8f0',
         ...style
       }}
     >
       {/* 1. The Blurry Placeholder Image */}
-      {placeholderSrc && (
+      {placeholderSrc && !isMainLoaded && (
         <img
           src={placeholderSrc}
-          alt="blur placeholder"
+          alt="loading placeholder"
           onLoad={() => setIsPlaceholderLoaded(true)}
+          decoding="async"
           style={{
             position: 'absolute',
             top: 0,
@@ -48,56 +60,44 @@ const AsyncCachedImage = ({ src, alt, className, style, width = 800, ...props })
             width: '100%',
             height: '100%',
             objectFit: style?.objectFit || 'cover',
-            filter: 'blur(10px)',
-            transform: 'scale(1.1)', // Prevent white edges from blur
-            opacity: isMainLoaded ? 0 : (isPlaceholderLoaded ? 1 : 0),
-            transition: 'opacity 0.5s ease-in-out',
+            filter: 'blur(8px)',
+            transform: 'scale(1.08)',
+            opacity: isPlaceholderLoaded ? 1 : 0,
+            transition: 'opacity 0.3s ease',
             zIndex: 1,
+            pointerEvents: 'none',
           }}
           aria-hidden="true"
         />
       )}
 
-      {/* 2. The Main High-Res Image */}
+      {/* 2. The Main High-Res WebP Image */}
       {mainSrc && (
         <img
           src={mainSrc}
-          alt={alt || "Media Image"}
-          loading="lazy"
+          alt={alt || "Media"}
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
+          decoding="async"
           onLoad={() => setIsMainLoaded(true)}
           onError={() => {
             if (!mainImageError) {
-              setMainImageError(true); // Fallback to original image
+              setMainImageError(true); // Fallback to raw Firebase Storage URL
             }
           }}
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
+            position: 'relative',
             width: '100%',
             height: '100%',
             objectFit: style?.objectFit || 'cover',
             opacity: isMainLoaded ? 1 : 0,
-            transition: 'opacity 0.3s ease-in-out',
+            transition: 'opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
             zIndex: 2,
+            display: 'block'
           }}
           {...props}
         />
       )}
-      
-      {/* 3. Static layout element to preserve aspect ratio if needed (fallback) */}
-      <img
-        src={placeholderSrc || mainSrc}
-        alt={alt || "Layout"}
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: style?.objectFit || 'cover',
-          visibility: 'hidden',
-          display: 'block'
-        }}
-        aria-hidden="true"
-      />
     </div>
   );
 };
