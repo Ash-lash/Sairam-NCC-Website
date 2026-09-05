@@ -9,10 +9,73 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { db } from "../../firebase";
-import { getOptimizedUrl } from "../../utils/imageOptimizer";
+import { getOptimizedUrl, preloadImage } from "../../utils/imageOptimizer";
 import MorphSlider from "../common/MorphSlider";
+import OptimizedImage from "../common/OptimizedImage";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 // ---------- Styled Components ----------
+const ModalViewerContainer = styled.div`
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  overflow: hidden;
+`;
+
+const ImageStage = styled.div`
+  width: 90vw;
+  height: 85vh;
+  max-width: 1400px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const NavButton = styled.button`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  ${props => props.$direction === 'left' ? 'left: 1.5rem;' : 'right: 1.5rem;'}
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100;
+  transition: all 0.2s ease;
+  &:hover {
+    background: rgba(255, 255, 255, 0.35);
+    transform: translateY(-50%) scale(1.1);
+  }
+`;
+
+const CaptionOverlay = styled.div`
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  padding: 0.6rem 1.4rem;
+  border-radius: 20px;
+  font-size: 0.95rem;
+  max-width: 80%;
+  text-align: center;
+  pointer-events: none;
+  z-index: 10;
+`;
 const SlideshowContainer = styled.section`
   padding: ${props => props.$isModal ? '0' : '6rem 0'};
   width: ${props => props.$isModal ? '100%' : '100vw'};
@@ -105,7 +168,71 @@ const PhotoSlideshow = ({
     }));
   }, [slides, isModal]);
 
+  // Preload neighboring slides when in modal
+  useEffect(() => {
+    if (!isModal || !slides.length) return;
+    const nextIdx = (currentIndex + 1) % slides.length;
+    const prevIdx = (currentIndex - 1 + slides.length) % slides.length;
+    if (slides[nextIdx]?.imageUrl) preloadImage(slides[nextIdx].imageUrl);
+    if (slides[prevIdx]?.imageUrl) preloadImage(slides[prevIdx].imageUrl);
+  }, [isModal, currentIndex, slides]);
+
+  // Keyboard navigation for modal lightbox
+  useEffect(() => {
+    if (!isModal) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowRight') {
+        onSlideChange((currentIndex + 1) % slides.length);
+      } else if (e.key === 'ArrowLeft') {
+        onSlideChange((currentIndex - 1 + slides.length) % slides.length);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModal, currentIndex, slides.length, onSlideChange]);
+
   if (!slides.length) return null;
+
+  if (isModal) {
+    const currentSlide = slides[currentIndex] || slides[0];
+    if (!currentSlide) return null;
+
+    return (
+      <ModalViewerContainer>
+        <NavButton
+          $direction="left"
+          onClick={() => onSlideChange((currentIndex - 1 + slides.length) % slides.length)}
+          aria-label="Previous photo"
+        >
+          <ChevronLeft size={30} />
+        </NavButton>
+
+        <ImageStage>
+          <OptimizedImage
+            key={currentSlide.id || currentIndex}
+            src={currentSlide.imageUrl}
+            alt={currentSlide.description || "Photo"}
+            width={1400}
+            quality={85}
+            priority={true}
+            objectFit="contain"
+            style={{ width: '100%', height: '100%', maxHeight: '85vh' }}
+          />
+          {currentSlide.description && (
+            <CaptionOverlay>{currentSlide.description}</CaptionOverlay>
+          )}
+        </ImageStage>
+
+        <NavButton
+          $direction="right"
+          onClick={() => onSlideChange((currentIndex + 1) % slides.length)}
+          aria-label="Next photo"
+        >
+          <ChevronRight size={30} />
+        </NavButton>
+      </ModalViewerContainer>
+    );
+  }
 
   return (
     <SlideshowContainer $isModal={isModal}>

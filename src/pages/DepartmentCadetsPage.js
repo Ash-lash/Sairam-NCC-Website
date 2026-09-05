@@ -932,7 +932,7 @@ const DepartmentCadetsPage = () => {
                       </DndContext>
                     ) : (
                       <CadetGrid>
-                        {groupCadets.map((cadet) => (
+                        {groupCadets.map((cadet, index) => (
                           <CadetCard
                             key={cadet.id}
                             initial={{ opacity: 0, y: 30 }}
@@ -943,7 +943,10 @@ const DepartmentCadetsPage = () => {
                               const photoUrl = cadet.photoURL || cadet.photoUrl || cadet.imageUrl || cadet.image || cadet.profileUrl;
                               return photoUrl ? (
                                 <CadetPhoto
-                                  src={getOptimizedUrl(photoUrl, 400, 80)}
+                                  src={photoUrl}
+                                  width={400}
+                                  quality={80}
+                                  priority={index < 8}
                                   alt={cadet.Name || cadet.name}
                                   objectFit="cover"
                                   objectPosition="center 10%"
@@ -1099,7 +1102,7 @@ const DepartmentCadetsPage = () => {
                         Batch {batch} <span className="badge personnel">{members.length} {members.length === 1 ? 'Member' : 'Members'}</span>
                       </SectionHeader>
                       <CadetGrid>
-                        {members.map((member) => (
+                        {members.map((member, index) => (
                           <CadetCard
                             key={member.id}
                             initial={{ opacity: 0, y: 30 }}
@@ -1113,7 +1116,10 @@ const DepartmentCadetsPage = () => {
                               if (member.isAlumni) {
                                 return photoUrl ? (
                                   <CadetPhoto
-                                    src={getOptimizedUrl(photoUrl, 600, 85)}
+                                    src={photoUrl}
+                                    width={400}
+                                    quality={80}
+                                    priority={index < 8}
                                     alt={member.name}
                                     objectFit="cover"
                                     objectPosition="center 15%"
@@ -1128,7 +1134,10 @@ const DepartmentCadetsPage = () => {
 
                               return photoUrl ? (
                                 <CadetPhoto
-                                  src={getOptimizedUrl(photoUrl, 600, 85)}
+                                  src={photoUrl}
+                                  width={400}
+                                  quality={80}
+                                  priority={index < 8}
                                   alt={member.Name || member.name}
                                   objectFit="cover"
                                   objectPosition="center 15%"

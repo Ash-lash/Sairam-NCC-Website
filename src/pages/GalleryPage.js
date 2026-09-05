@@ -361,9 +361,17 @@ const GalleryPage = () => {
                         </SubfolderHeader>
                       )}
                       <PhotoGrid>
-                        {folderPhotos.map((photo) => (
+                        {folderPhotos.map((photo, index) => (
                           <PhotoItem key={photo.id} onClick={() => openPhoto(photos, photo.id)}>
-                            <OptimizedImage src={photo.imageUrl} width={450} quality={60} alt="gallery" objectFit="cover" style={{ width: '100%', height: '100%' }} />
+                            <OptimizedImage
+                              src={photo.imageUrl}
+                              width={400}
+                              quality={75}
+                              priority={index < 8}
+                              alt={photo.caption || "gallery photo"}
+                              objectFit="cover"
+                              style={{ width: '100%', height: '100%' }}
+                            />
                           </PhotoItem>
                         ))}
                       </PhotoGrid>
