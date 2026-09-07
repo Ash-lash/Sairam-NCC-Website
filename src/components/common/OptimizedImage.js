@@ -1,6 +1,6 @@
 import React, { memo, useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { getOptimizedUrl, getBlurUrl } from '../../utils/imageOptimizer';
+import { getOptimizedUrl, getBlurUrl, getResponsiveSrcSet } from '../../utils/imageOptimizer';
 
 // Use layout effect on the client, effect on the server (SSR safety).
 const useIsomorphicLayoutEffect =
@@ -177,10 +177,16 @@ const OptimizedImage = memo(({
         return getBlurUrl(rawUrl);
     }, [isLoaded, rawUrl]);
 
-    if (!src) return null;
+    const responsiveSrcSet = useMemo(() => {
+        if (!rawUrl || imgSrc !== primaryUrl) return undefined;
+        return getResponsiveSrcSet(rawUrl, quality);
+    }, [rawUrl, imgSrc, primaryUrl, quality]);
 
+    const effectiveSizes = sizes || `(max-width: 640px) 400px, (max-width: 1024px) 800px, ${width}px`;
     const effectiveLoading = loading || (priority ? 'eager' : 'lazy');
     const effectivePriority = fetchpriority || (priority ? 'high' : 'auto');
+
+    if (!src) return null;
 
     return (
         <ImageContainer
@@ -216,7 +222,8 @@ const OptimizedImage = memo(({
                 <StyledImage
                     ref={imgRef}
                     src={imgSrc}
-                    sizes={sizes || `${width}px`}
+                    srcSet={responsiveSrcSet}
+                    sizes={effectiveSizes}
                     alt={alt}
                     loading={effectiveLoading}
                     decoding="async"

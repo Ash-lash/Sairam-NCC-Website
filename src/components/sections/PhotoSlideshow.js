@@ -162,19 +162,23 @@ const PhotoSlideshow = ({
 
   const morphItems = React.useMemo(() => {
     return slides.map(slide => ({
-      image: getOptimizedUrl(slide.imageUrl, isModal ? 2000 : 1600, 80),
+      image: getOptimizedUrl(slide.imageUrl, isModal ? 1600 : 1200, 80),
       fallbackImage: slide.imageUrl,
       caption: slide.description || ''
     }));
   }, [slides, isModal]);
 
-  // Preload neighboring slides when in modal
+  // Preload neighboring slides when in modal (preloads the exact 1600px optimized version)
   useEffect(() => {
     if (!isModal || !slides.length) return;
     const nextIdx = (currentIndex + 1) % slides.length;
     const prevIdx = (currentIndex - 1 + slides.length) % slides.length;
-    if (slides[nextIdx]?.imageUrl) preloadImage(slides[nextIdx].imageUrl);
-    if (slides[prevIdx]?.imageUrl) preloadImage(slides[prevIdx].imageUrl);
+    if (slides[nextIdx]?.imageUrl) {
+      preloadImage(getOptimizedUrl(slides[nextIdx].imageUrl, 1600, 85));
+    }
+    if (slides[prevIdx]?.imageUrl) {
+      preloadImage(getOptimizedUrl(slides[prevIdx].imageUrl, 1600, 85));
+    }
   }, [isModal, currentIndex, slides]);
 
   // Keyboard navigation for modal lightbox
@@ -212,7 +216,7 @@ const PhotoSlideshow = ({
             key={currentSlide.id || currentIndex}
             src={currentSlide.imageUrl}
             alt={currentSlide.description || "Photo"}
-            width={1400}
+            width={1600}
             quality={85}
             priority={true}
             objectFit="contain"

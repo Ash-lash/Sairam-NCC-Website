@@ -15,7 +15,7 @@
  * (browser Cache Storage), not in Firebase.
  */
 
-const SW_VERSION = 'v6-2026-fast';
+const SW_VERSION = 'v7-2026-imagekit';
 const IMAGE_CACHE = `ncc-images-${SW_VERSION}`;
 const MAX_IMAGE_ENTRIES = 300;
 

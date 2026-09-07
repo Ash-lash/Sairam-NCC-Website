@@ -1,5 +1,5 @@
 // src/pages/GalleryPage.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { collection, query, orderBy, getDocs, where, limit } from 'firebase/firestore';
@@ -205,6 +205,83 @@ const IconButton = styled(motion.button)`
   backdrop-filter: blur(5px);
 `;
 
+const BATCH_SIZE = 16;
+
+const PaginatedFolderSection = ({ folder, folderPhotos, allPhotos, openPhoto }) => {
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  const sentinelRef = useRef(null);
+
+  const displayedPhotos = useMemo(() => {
+    return folderPhotos.slice(0, visibleCount);
+  }, [folderPhotos, visibleCount]);
+
+  const hasMore = visibleCount < folderPhotos.length;
+
+  useEffect(() => {
+    if (!hasMore) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    if (typeof window !== 'undefined' && 'IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, folderPhotos.length));
+        }
+      }, { rootMargin: '400px' });
+
+      observer.observe(sentinel);
+      return () => observer.disconnect();
+    }
+  }, [hasMore, folderPhotos.length]);
+
+  return (
+    <SubfolderSection key={folder}>
+      {folder !== 'General' && (
+        <SubfolderHeader>
+          <Folder size={24} />
+          <h3>{folder}</h3>
+          <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>({folderPhotos.length} photos)</span>
+        </SubfolderHeader>
+      )}
+      <PhotoGrid>
+        {displayedPhotos.map((photo, index) => (
+          <PhotoItem key={photo.id} onClick={() => openPhoto(allPhotos, photo.id)}>
+            <OptimizedImage
+              src={photo.imageUrl}
+              width={400}
+              quality={75}
+              priority={index < 8}
+              alt={photo.caption || "gallery photo"}
+              objectFit="cover"
+              style={{ width: '100%', height: '100%' }}
+            />
+          </PhotoItem>
+        ))}
+      </PhotoGrid>
+      {hasMore && (
+        <div ref={sentinelRef} style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+          <button
+            onClick={() => setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, folderPhotos.length))}
+            style={{
+              padding: '10px 24px',
+              borderRadius: '24px',
+              border: '1px solid #e2e8f0',
+              background: 'white',
+              color: '#3b82f6',
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+            }}
+          >
+            Load More ({folderPhotos.length - visibleCount} remaining)
+          </button>
+        </div>
+      )}
+    </SubfolderSection>
+  );
+};
+
 const GalleryPage = () => {
   const [view, setView] = useState('albums');
   const [albums, setAlbums] = useState([]);
@@ -353,29 +430,13 @@ const GalleryPage = () => {
               ) : (
                 <>
                   {Object.entries(grouped).map(([folder, folderPhotos]) => (
-                    <SubfolderSection key={folder}>
-                      {folder !== 'General' && (
-                        <SubfolderHeader>
-                          <Folder size={24} />
-                          <h3>{folder}</h3>
-                        </SubfolderHeader>
-                      )}
-                      <PhotoGrid>
-                        {folderPhotos.map((photo, index) => (
-                          <PhotoItem key={photo.id} onClick={() => openPhoto(photos, photo.id)}>
-                            <OptimizedImage
-                              src={photo.imageUrl}
-                              width={400}
-                              quality={75}
-                              priority={index < 8}
-                              alt={photo.caption || "gallery photo"}
-                              objectFit="cover"
-                              style={{ width: '100%', height: '100%' }}
-                            />
-                          </PhotoItem>
-                        ))}
-                      </PhotoGrid>
-                    </SubfolderSection>
+                    <PaginatedFolderSection
+                      key={folder}
+                      folder={folder}
+                      folderPhotos={folderPhotos}
+                      allPhotos={photos}
+                      openPhoto={openPhoto}
+                    />
                   ))}
                   {photos.length === 0 && <p style={{ textAlign: 'center', color: '#64748b' }}>No photos found in this album.</p>}
                 </>
