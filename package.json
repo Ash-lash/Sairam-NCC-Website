@@ -16,6 +16,8 @@
     "browser-image-compression": "^2.0.2",
     "core-js": "^3.47.0",
     "date-fns": "^4.1.0",
+    "docx": "^9.10.0",
+    "file-saver": "^2.0.5",
     "firebase": "^12.2.1",
     "firebase-admin": "^13.6.0",
     "firebase-functions": "^6.6.0",
@@ -53,7 +55,8 @@
     "test": "craco test",
     "eject": "react-scripts eject",
     "sitemap": "node generate-sitemap.js",
-    "prebuild": "npm run sitemap"
+    "prebuild": "npm run sitemap",
+    "od-generator": "\"OD GENERATOR/.venv/Scripts/python.exe\" \"OD GENERATOR/app.py\""
   },
   "eslintConfig": {
     "extends": [

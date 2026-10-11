@@ -937,6 +937,7 @@ const Navbar = () => {
                         <DropdownItem to="/admin/blogs" icon={PenTool}>Blogs</DropdownItem>
                         <DropdownItem to="/admin/announcements" icon={FileText}>Updates</DropdownItem>
                         <DropdownItem to="/admin/registrations" icon={FileSpreadsheet}>Registrations</DropdownItem>
+                        <DropdownItem to="/admin/od-generator" icon={FileText}>OD Generator</DropdownItem>
                       </DropdownMenu>
                     )}
                   </MenuItem>
@@ -1057,6 +1058,7 @@ const Navbar = () => {
                         <Link to="/admin/blogs">Blogs</Link>
                         <Link to="/admin/announcements">Updates</Link>
                         <Link to="/admin/registrations">Registrations</Link>
+                        <Link to="/admin/od-generator">OD Generator</Link>
                       </MobileDropdownContent>
                     )}
                   </MobileMenuItem>

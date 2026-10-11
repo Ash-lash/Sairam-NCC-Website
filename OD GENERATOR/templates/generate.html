@@ -1,0 +1,630 @@
+{% extends "base.html" %}
+
+{% block title %}
+Generate OD Letter
+{% endblock %}
+
+{% block content %}
+
+<div class="page-heading">
+
+    <span class="badge">
+        OD GENERATOR
+    </span>
+
+    <h1>
+        Generate On Duty Letter
+    </h1>
+
+    <p>
+        Filter and select NCC cadets before generating the Word OD letter.
+    </p>
+
+</div>
+
+
+<!-- ====================================================== -->
+<!-- FILTER -->
+<!-- ====================================================== -->
+
+<section class="card">
+
+    <h2>Filter Cadets</h2>
+
+    <form method="GET"
+          action="{{ url_for('generate') }}"
+          class="filter-grid">
+
+        <label>
+
+            Wing
+
+            <select name="wing">
+
+                <option value="">
+                    All Wings
+                </option>
+
+                {% for wing in wings %}
+
+                <option value="{{ wing }}"
+                    {% if wing_filter == wing %}
+                        selected
+                    {% endif %}
+                >
+
+                    {{ wing }}
+
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </label>
+
+
+        <label>
+
+            Department
+
+            <select name="department">
+
+                <option value="">
+                    All Departments
+                </option>
+
+                {% for department in departments %}
+
+                <option value="{{ department }}"
+                    {% if department_filter == department %}
+                        selected
+                    {% endif %}
+                >
+
+                    {{ department }}
+
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </label>
+
+
+        <label>
+
+            Year
+
+            <select name="year">
+
+                <option value="">
+                    All Years
+                </option>
+
+                <option value="I"
+                    {% if year_filter == "I" %}
+                    selected
+                    {% endif %}
+                >
+                    I Year
+                </option>
+
+                <option value="II"
+                    {% if year_filter == "II" %}
+                    selected
+                    {% endif %}
+                >
+                    II Year
+                </option>
+
+                <option value="III"
+                    {% if year_filter == "III" %}
+                    selected
+                    {% endif %}
+                >
+                    III Year
+                </option>
+
+                <option value="IV"
+                    {% if year_filter == "IV" %}
+                    selected
+                    {% endif %}
+                >
+                    IV Year
+                </option>
+
+            </select>
+
+        </label>
+
+
+        <label>
+
+            SD / SW
+
+            <select name="gender">
+
+                <option value="">
+                    All
+                </option>
+
+                <option value="SD"
+                    {% if gender_filter == "SD" %}
+                    selected
+                    {% endif %}
+                >
+                    SD / Boys
+                </option>
+
+                <option value="SW"
+                    {% if gender_filter == "SW" %}
+                    selected
+                    {% endif %}
+                >
+                    SW / Girls
+                </option>
+
+                <option value="BOY"
+                    {% if gender_filter == "BOY" %}
+                    selected
+                    {% endif %}
+                >
+                    Boys
+                </option>
+
+                <option value="GIRL"
+                    {% if gender_filter == "GIRL" %}
+                    selected
+                    {% endif %}
+                >
+                    Girls
+                </option>
+
+            </select>
+
+        </label>
+
+
+        <label>
+
+            Search
+
+            <input
+                type="text"
+                name="search"
+                value="{{ search_filter }}"
+                placeholder="Name / SEC ID / Department"
+            >
+
+        </label>
+
+
+        <button
+            type="submit"
+            class="button primary"
+        >
+            Apply Filter
+        </button>
+
+
+        <a
+            href="{{ url_for('generate') }}"
+            class="button"
+        >
+            Reset
+        </a>
+
+    </form>
+
+</section>
+
+
+<!-- ====================================================== -->
+<!-- LETTER DETAILS -->
+<!-- ====================================================== -->
+
+<form
+    method="POST"
+    action="{{ url_for('generate_letter') }}"
+>
+
+
+<section class="card">
+
+    <h2>OD Letter Details</h2>
+
+
+    <div class="form-grid">
+
+
+        <label>
+
+            From Date
+
+            <input
+                type="date"
+                name="from_date"
+                required
+            >
+
+        </label>
+
+
+        <label>
+
+            To Date
+
+            <input
+                type="date"
+                name="to_date"
+            >
+
+        </label>
+
+
+        <label>
+
+            Program Location
+
+            <input
+                type="text"
+                name="program_location"
+                placeholder="Enter program location"
+                required
+            >
+
+        </label>
+
+
+        <label>
+
+            Program Details (Optional)
+
+            <input
+                type="text"
+                name="program_details"
+                placeholder="Example: Annual Training Camp"
+            >
+
+        </label>
+
+
+        <label>
+
+            Time
+
+            <input
+                type="text"
+                name="program_time"
+                placeholder="Example: 10:00 AM to 04:00 PM"
+            >
+
+        </label>
+
+
+        <label>
+
+            Academic Year
+
+            <select name="academic_year">
+
+                <option value="">
+                    Auto / Optional
+                </option>
+
+                <option value="I">
+                    I Year
+                </option>
+
+                <option value="II">
+                    II Year
+                </option>
+
+                <option value="III">
+                    III Year
+                </option>
+
+                <option value="IV">
+                    IV Year
+                </option>
+
+            </select>
+
+        </label>
+
+
+        <label>
+
+            Yours Sincerely Name
+
+            <input
+                type="text"
+                name="sincerely_name"
+                placeholder="ANO / Officer Name"
+            >
+
+        </label>
+
+    </div>
+
+
+    <label>
+
+        From Address
+
+        <textarea
+            name="from_address"
+            rows="7"
+        >The Commanding Officer / ANO
+Sri Sairam Engineering College
+Chennai
+
+ 
+
+
+</textarea>
+
+    </label>
+
+
+    <label>
+
+        To Address
+
+        <textarea
+            name="to_address"
+            rows="6"
+        >The Principal
+Sri Sairam Engineering College
+Chennai</textarea>
+
+    </label>
+
+
+    <label>
+
+        Letter Content (Optional)
+
+        <textarea
+            name="letter_content"
+            rows="8"
+            placeholder="Leave blank to use the standard letter content."
+        ></textarea>
+
+    </label>
+
+</section>
+
+
+<!-- ====================================================== -->
+<!-- CADET SELECTION -->
+<!-- ====================================================== -->
+
+<section class="card">
+
+    <div class="toolbar">
+
+        <h2>
+            Select Cadets
+        </h2>
+
+        <span>
+            {{ students|length }} cadets found
+        </span>
+
+    </div>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        <input
+                            type="checkbox"
+                            id="selectAll"
+                        >
+                    </th>
+
+                    <th>
+                        S.No
+                    </th>
+
+                    <th>
+                        SEC ID
+                    </th>
+
+                    <th>
+                        Name
+                    </th>
+
+                    <th>
+                        Year
+                    </th>
+
+                    <th>
+                        Department
+                    </th>
+
+                    <th>
+                        Section
+                    </th>
+
+                    <th>
+                        Wing
+                    </th>
+
+                    <th>
+                        SD / SW
+                    </th>
+
+                    <th>
+                        Regiment No.
+                    </th>
+
+                    <th>
+                        Rank
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+            {% for student in students %}
+
+                <tr>
+
+                    <td>
+
+                        <input
+                            type="checkbox"
+                            name="selected_students"
+                            value="{{ student.student_id }}"
+                            class="student-checkbox"
+                        >
+
+                    </td>
+
+
+                    <td>
+                        {{ loop.index }}
+                    </td>
+
+
+                    <td>
+                        {{ student.student_id }}
+                    </td>
+
+
+                    <td>
+                        {{ student.name }}
+                    </td>
+
+
+                    <td>
+
+                        {% if student.year %}
+
+                            {{ student.year }} Year
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+                        {{ student.department }}
+                    </td>
+
+
+                    <td>
+                        {{ student.section }}
+                    </td>
+
+
+                    <td>
+                        {{ student.wing }}
+                    </td>
+
+
+                    <td>
+
+                        {% if student.gender == "SD" %}
+
+                            SD / Boy
+
+                        {% elif student.gender == "SW" %}
+
+                            SW / Girl
+
+                        {% else %}
+
+                            -
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+                        {{ student.regiment_no }}
+                    </td>
+
+
+                    <td>
+                        {{ student.rank }}
+                    </td>
+
+                </tr>
+
+            {% else %}
+
+                <tr>
+
+                    <td
+                        colspan="11"
+                        class="empty"
+                    >
+
+                        No cadets found for the selected filters.
+
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <div class="generate-area">
+
+        <button
+            type="submit"
+            class="button primary large"
+        >
+
+            Generate Word OD Letter
+
+        </button>
+
+    </div>
+
+</section>
+
+</form>
+
+
+<script>
+
+document
+    .getElementById("selectAll")
+    .addEventListener("change", function () {
+
+        document
+            .querySelectorAll(".student-checkbox")
+            .forEach(function (checkbox) {
+
+                checkbox.checked =
+                    document.getElementById("selectAll").checked;
+
+            });
+
+    });
+
+</script>
+
+{% endblock %}

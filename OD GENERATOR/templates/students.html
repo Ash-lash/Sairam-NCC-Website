@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block title %}
+Student Database | OD Generator
+{% endblock %}
+
+
+{% block content %}
+
+<div class="page-heading">
+
+    <span class="badge">
+        DATABASE
+    </span>
+
+    <h1>
+        Student Database
+    </h1>
+
+    <p>
+        Upload, view, edit and delete NCC master data.
+    </p>
+
+</div>
+
+
+<!-- ====================================================== -->
+<!-- UPLOAD -->
+<!-- ====================================================== -->
+
+<section class="card">
+
+    <h2>
+        Upload Master Excel
+    </h2>
+
+    <form
+        method="POST"
+        action="{{ url_for('upload') }}"
+        enctype="multipart/form-data"
+        class="upload-grid"
+    >
+
+        <label>
+
+            Batch Year
+
+            <input
+                type="number"
+                name="batch"
+                min="2022"
+                max="2035"
+                value="2026"
+                required
+            >
+
+        </label>
+
+
+        <label>
+
+            Excel File
+
+            <input
+                type="file"
+                name="master_file"
+                accept=".xlsx,.xls,.xlsm"
+                required
+            >
+
+        </label>
+
+
+        <button
+            class="button primary"
+            type="submit"
+        >
+
+            Upload & Import
+
+        </button>
+
+    </form>
+
+
+    <div class="info-box">
+
+        The system reads <b>all worksheets</b>
+        in the Excel workbook.
+
+        It detects:
+
+        <b>
+            SEC ID, NAME, YEAR, DEPARTMENT,
+            SECTION, WING, BATCH,
+            REGIMENT NO, RANK and SD/SW
+        </b>.
+
+    </div>
+
+</section>
+
+
+<!-- ====================================================== -->
+<!-- SEARCH -->
+<!-- ====================================================== -->
+
+<section class="card">
+
+    <div class="toolbar">
+
+        <form
+            method="GET"
+            class="search-form"
+        >
+
+            <input
+                type="text"
+                name="q"
+                value="{{ query }}"
+                placeholder="Search name, SEC ID, department, section or wing"
+            >
+
+            <button
+                class="button"
+                type="submit"
+            >
+                Search
+            </button>
+
+        </form>
+
+
+        <form
+            method="POST"
+            action="{{ url_for('clear') }}"
+            onsubmit="return confirm('Delete all students?');"
+        >
+
+            <button
+                class="button danger"
+                type="submit"
+            >
+                Delete All
+            </button>
+
+        </form>
+
+    </div>
+
+
+<!-- ====================================================== -->
+<!-- TABLE -->
+<!-- ====================================================== -->
+
+<div class="table-wrapper">
+
+<table>
+
+<thead>
+
+<tr>
+
+    <th>SEC ID</th>
+
+    <th>NAME</th>
+
+    <th>YEAR</th>
+
+    <th>DEPT</th>
+
+    <th>SEC</th>
+
+    <th>WING</th>
+
+    <th>BATCH</th>
+
+    <th>REGIMENT NO</th>
+
+    <th>RANK</th>
+
+    <th>SD / SW</th>
+
+    <th>ACTION</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+{% for student in students %}
+
+<tr>
+
+    <td>
+        {{ student.student_id }}
+    </td>
+
+    <td>
+        {{ student.name }}
+    </td>
+
+    <td>
+
+        {% if student.year %}
+            {{ student.year }} Year
+        {% endif %}
+
+    </td>
+
+    <td>
+        {{ student.department }}
+    </td>
+
+    <td>
+        {{ student.section }}
+    </td>
+
+    <td>
+        {{ student.wing }}
+    </td>
+
+    <td>
+        {{ student.batch }}
+    </td>
+
+    <td>
+        {{ student.regiment_no }}
+    </td>
+
+    <td>
+        {{ student.rank }}
+    </td>
+
+    <td>
+
+        {% if student.gender == "SD" %}
+            SD / Boy
+
+        {% elif student.gender == "SW" %}
+            SW / Girl
+
+        {% else %}
+            -
+        {% endif %}
+
+    </td>
+
+
+    <td class="actions">
+
+        <a
+            href="{{ url_for(
+                'edit_student',
+                student_id=student.student_id
+            ) }}"
+            class="button small"
+        >
+            Edit
+        </a>
+
+
+        <form
+            method="POST"
+            action="{{ url_for(
+                'remove_student',
+                student_id=student.student_id
+            ) }}"
+            onsubmit="return confirm('Delete this student?');"
+        >
+
+            <button
+                class="button danger small"
+                type="submit"
+            >
+                Delete
+            </button>
+
+        </form>
+
+    </td>
+
+</tr>
+
+
+{% else %}
+
+<tr>
+
+    <td
+        colspan="11"
+        class="empty"
+    >
+
+        No student data found.
+
+    </td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+</section>
+
+{% endblock %}

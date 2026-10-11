@@ -62,6 +62,7 @@ const AdminBlogsPage = lazy(() => import('./pages/AdminBlogsPage'));
 const ScholarshipsPage = lazy(() => import('./pages/ScholarshipsPage'));
 const AdminScholarshipsPage = lazy(() => import('./pages/AdminScholarshipsPage'));
 const AdminRegistrationManager = lazy(() => import('./pages/AdminRegistrationManager'));
+const AdminODGeneratorPage = lazy(() => import('./pages/AdminODGeneratorPage'));
 
 
 
@@ -161,6 +162,7 @@ function App() {
                 <Route path="/admin/leadership" element={<AdminLeadershipPage />} />
                 <Route path="/admin/blogs" element={<AdminBlogsPage />} />
                 <Route path="/admin/registrations" element={<AdminRegistrationManager />} />
+                <Route path="/admin/od-generator" element={<AdminODGeneratorPage />} />
               </Route>
             </Routes>
           </Suspense>

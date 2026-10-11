@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}
+Edit Student | OD Generator
+{% endblock %}
+
+
+{% block content %}
+
+<div class="page-heading">
+
+    <span class="badge">
+        EDIT
+    </span>
+
+    <h1>
+        Edit Student Details
+    </h1>
+
+</div>
+
+
+<section class="card">
+
+<form
+    method="POST"
+>
+
+
+<div class="form-grid">
+
+
+<label>
+
+    SEC ID
+
+    <input
+        type="text"
+        value="{{ student.student_id }}"
+        disabled
+    >
+
+</label>
+
+
+<label>
+
+    Name
+
+    <input
+        type="text"
+        name="name"
+        value="{{ student.name }}"
+        required
+    >
+
+</label>
+
+
+<label>
+
+    Year
+
+    <select name="year">
+
+        <option
+            value=""
+            {% if not student.year %}
+            selected
+            {% endif %}
+        >
+            Select
+        </option>
+
+        <option
+            value="I"
+            {% if student.year == "I" %}
+            selected
+            {% endif %}
+        >
+            I Year
+        </option>
+
+        <option
+            value="II"
+            {% if student.year == "II" %}
+            selected
+            {% endif %}
+        >
+            II Year
+        </option>
+
+        <option
+            value="III"
+            {% if student.year == "III" %}
+            selected
+            {% endif %}
+        >
+            III Year
+        </option>
+
+        <option
+            value="IV"
+            {% if student.year == "IV" %}
+            selected
+            {% endif %}
+        >
+            IV Year
+        </option>
+
+    </select>
+
+</label>
+
+
+<label>
+
+    Department
+
+    <input
+        type="text"
+        name="department"
+        value="{{ student.department }}"
+    >
+
+</label>
+
+
+<label>
+
+    Section
+
+    <input
+        type="text"
+        name="section"
+        value="{{ student.section }}"
+    >
+
+</label>
+
+
+<label>
+
+    Wing
+
+    <select name="wing">
+
+        <option value="ARMY"
+            {% if student.wing == "ARMY" %}
+            selected
+            {% endif %}
+        >
+            ARMY
+        </option>
+
+        <option value="AIR"
+            {% if student.wing == "AIR" %}
+            selected
+            {% endif %}
+        >
+            AIR
+        </option>
+
+        <option value="NAVY"
+            {% if student.wing == "NAVY" %}
+            selected
+            {% endif %}
+        >
+            NAVY
+        </option>
+
+    </select>
+
+</label>
+
+
+<label>
+
+    Batch
+
+    <input
+        type="number"
+        name="batch"
+        min="2022"
+        max="2035"
+        value="{{ student.batch }}"
+    >
+
+</label>
+
+
+<label>
+
+    Regiment No.
+
+    <input
+        type="text"
+        name="regiment_no"
+        value="{{ student.regiment_no }}"
+    >
+
+</label>
+
+
+<label>
+
+    Rank
+
+    <input
+        type="text"
+        name="rank"
+        value="{{ student.rank }}"
+    >
+
+</label>
+
+
+<label>
+
+    SD / SW
+
+    <select name="gender">
+
+        <option value=""
+            {% if not student.gender %}
+            selected
+            {% endif %}
+        >
+            Select
+        </option>
+
+        <option value="SD"
+            {% if student.gender == "SD" %}
+            selected
+            {% endif %}
+        >
+            SD / Boy
+        </option>
+
+        <option value="SW"
+            {% if student.gender == "SW" %}
+            selected
+            {% endif %}
+        >
+            SW / Girl
+        </option>
+
+    </select>
+
+</label>
+
+</div>
+
+
+<div class="form-actions">
+
+    <button
+        type="submit"
+        class="button primary"
+    >
+        Save Changes
+    </button>
+
+
+    <a
+        href="{{ url_for('students') }}"
+        class="button"
+    >
+        Cancel
+    </a>
+
+</div>
+
+
+</form>
+
+</section>
+
+{% endblock %}

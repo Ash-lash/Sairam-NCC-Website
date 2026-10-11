@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}
+Dashboard | OD Generator
+{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+	<span class="badge">NCC DOCUMENT WORKSPACE</span>
+	<h1>On Duty letters, ready when you are.</h1>
+	<p>
+		Keep your cadet records organized, then generate a polished Word letter
+		for any programme in a few steps.
+	</p>
+	<a class="button primary large" href="{{ url_for('generate') }}">
+		Generate an OD Letter
+	</a>
+</section>
+
+<section class="stats" aria-label="Student statistics">
+	<div class="stat-card">
+		<span>Total Cadets</span>
+		<strong>{{ statistics.total }}</strong>
+	</div>
+	<div class="stat-card">
+		<span>Army Wing</span>
+		<strong>{{ statistics.army }}</strong>
+	</div>
+	<div class="stat-card">
+		<span>Air Wing</span>
+		<strong>{{ statistics.air }}</strong>
+	</div>
+	<div class="stat-card">
+		<span>Navy Wing</span>
+		<strong>{{ statistics.navy }}</strong>
+	</div>
+</section>
+
+<section class="quick-grid" aria-label="Quick actions">
+	<a class="quick-card" href="{{ url_for('students') }}">
+		<b>Manage student database</b>
+		<span>Upload or search your master Excel records.</span>
+	</a>
+	<a class="quick-card" href="{{ url_for('generate') }}">
+		<b>Create a new letter</b>
+		<span>Select cadets and enter the programme details.</span>
+	</a>
+</section>
+
+{% endblock %}
