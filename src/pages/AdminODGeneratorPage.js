@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText, Download, Upload, Search, CheckSquare, Square,
   CheckCircle2, AlertCircle, RefreshCw, ArrowLeft, Users,
-  Calendar, MapPin, Clock, ShieldCheck, ExternalLink, Terminal,
-  SlidersHorizontal, Sparkles, Filter
+  Calendar, MapPin, Clock, ShieldCheck, Filter, ChevronDown,
+  Sparkles, Layers
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
@@ -14,31 +14,32 @@ import * as XLSX from 'xlsx';
 import SEO from '../components/common/SEO';
 import { generateAndDownloadODDocx } from '../utils/odDocxGenerator';
 
-const GOLD = "#FFBF00";
 const NAVY = "#1a2b4c";
-const ACCENT = "#3b82f6";
+const GOLD = "#FFBF00";
+const ACCENT = "#2563eb";
 
+// --- STYLES ---
 const PageContainer = styled.div`
   min-height: 100vh;
   background: #f8fafc;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  padding-top: 100px;
-  padding-bottom: 4rem;
+  padding-top: 96px;
+  padding-bottom: 5rem;
 `;
 
 const ContentWrapper = styled.div`
-  max-width: 1440px;
+  max-width: 1520px;
   margin: 0 auto;
   padding: 0 1.5rem;
 `;
 
-const HeaderCard = styled.div`
+const TopNav = styled.div`
   background: white;
-  padding: 1.5rem 2rem;
+  padding: 1.25rem 2rem;
   border-radius: 20px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04);
+  margin-bottom: 1.75rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -49,7 +50,7 @@ const HeaderCard = styled.div`
 const TitleArea = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
 `;
 
 const BackBtn = styled(motion.button)`
@@ -63,59 +64,58 @@ const BackBtn = styled(motion.button)`
   justify-content: center;
   color: ${NAVY};
   cursor: pointer;
+  transition: all 0.2s;
   &:hover { background: #e2e8f0; }
 `;
 
-const TabBar = styled.div`
-  display: flex;
-  background: #f1f5f9;
-  padding: 4px;
-  border-radius: 12px;
-  gap: 4px;
-`;
-
-const TabBtn = styled.button`
-  background: ${props => props.$active ? 'white' : 'transparent'};
-  color: ${props => props.$active ? NAVY : '#64748b'};
-  border: none;
-  padding: 8px 18px;
-  border-radius: 9px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
+const Title = styled.h1`
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: ${NAVY};
+  margin: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
-  box-shadow: ${props => props.$active ? '0 2px 4px rgba(0,0,0,0.06)' : 'none'};
-  transition: all 0.2s;
+  gap: 10px;
 `;
 
-const Grid = styled.div`
+const Badge = styled.span`
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: ${props => props.$success ? '#dcfce7' : '#e0f2fe'};
+  color: ${props => props.$success ? '#15803d' : '#0369a1'};
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+`;
+
+const LayoutGrid = styled.div`
   display: grid;
-  grid-template-columns: 420px 1fr;
-  gap: 1.5rem;
+  grid-template-columns: 460px 1fr;
+  gap: 1.75rem;
   align-items: start;
 
-  @media (max-width: 1024px) {
+  @media (max-width: 1180px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const Card = styled.div`
+const PanelCard = styled.div`
   background: white;
   border-radius: 20px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
   padding: 1.75rem;
-  margin-bottom: 1.5rem;
+  position: relative;
 `;
 
-const CardHeader = styled.div`
+const CardHeading = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1.25rem;
-  padding-bottom: 0.75rem;
+  padding-bottom: 0.85rem;
   border-bottom: 1px solid #f1f5f9;
 
   h2 {
@@ -133,10 +133,10 @@ const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 1rem;
+  margin-bottom: 1.1rem;
 
   label {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: #475569;
     text-transform: uppercase;
@@ -151,74 +151,137 @@ const FormGroup = styled.div`
     font-family: inherit;
     color: #1e293b;
     outline: none;
-    transition: border 0.2s;
+    transition: all 0.2s;
 
     &:focus {
       border-color: ${ACCENT};
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
   }
 
   textarea {
     resize: vertical;
-    font-family: inherit;
     font-size: 0.85rem;
+    line-height: 1.5;
   }
 `;
 
 const TwoCols = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 12px;
 `;
 
-const SourceToggle = styled.div`
+const ActionButton = styled(motion.button)`
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  color: white;
+  border: none;
+  width: 100%;
+  padding: 15px 20px;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
   display: flex;
-  gap: 8px;
-  background: #f8fafc;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 6px 16px rgba(29, 78, 216, 0.28);
+  transition: all 0.2s;
+  margin-top: 1.25rem;
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    box-shadow: 0 8px 20px rgba(29, 78, 216, 0.38);
+  }
+
+  &:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+`;
+
+const DataSourceTabs = styled.div`
+  display: flex;
+  background: #f1f5f9;
   padding: 4px;
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  gap: 4px;
   margin-bottom: 1.25rem;
 `;
 
-const SourceBtn = styled.button`
+const DataSourceTab = styled.button`
   flex: 1;
-  padding: 9px;
+  padding: 8px 14px;
   border: none;
   border-radius: 9px;
-  background: ${props => props.$active ? NAVY : 'transparent'};
-  color: ${props => props.$active ? 'white' : '#64748b'};
-  font-size: 0.85rem;
+  background: ${props => props.$active ? 'white' : 'transparent'};
+  color: ${props => props.$active ? NAVY : '#64748b'};
   font-weight: 700;
+  font-size: 0.85rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
+  box-shadow: ${props => props.$active ? '0 2px 4px rgba(0,0,0,0.06)' : 'none'};
   transition: all 0.2s;
 `;
 
-const FilterBar = styled.div`
+const FilterGrid = styled.div`
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr;
+  grid-template-columns: 1.8fr 1fr 1fr 1fr;
   gap: 10px;
   margin-bottom: 1.25rem;
 
-  @media (max-width: 768px) {
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr 1fr;
+  }
+  @media (max-width: 600px) {
     grid-template-columns: 1fr;
   }
 `;
 
-const TableWrap = styled.div`
+const SelectionBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
+const SelectAllBtn = styled.button`
+  background: white;
+  border: 1px solid #cbd5e1;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: ${NAVY};
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  &:hover { background: #f1f5f9; }
+`;
+
+const TableWrapper = styled.div`
   border: 1px solid #e2e8f0;
   border-radius: 14px;
   overflow: hidden;
-  max-height: 520px;
+  max-height: 580px;
   overflow-y: auto;
+  background: white;
 `;
 
-const CadetTable = styled.table`
+const StyledTable = styled.table`
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
@@ -236,9 +299,10 @@ const CadetTable = styled.table`
   }
 
   td {
-    padding: 11px 14px;
+    padding: 10px 14px;
     border-bottom: 1px solid #f1f5f9;
     color: #1e293b;
+    vertical-align: middle;
   }
 
   tr:hover td {
@@ -250,43 +314,33 @@ const CadetTable = styled.table`
   }
 `;
 
-const CheckboxCell = styled.td`
-  width: 40px;
-  text-align: center;
-  cursor: pointer;
-`;
-
-const PrimaryBtn = styled(motion.button)`
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  color: white;
-  border: none;
-  width: 100%;
-  padding: 14px 20px;
-  border-radius: 14px;
-  font-size: 1rem;
+const WingPill = styled.span`
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
   font-weight: 800;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
-  transition: all 0.2s;
-
-  &:disabled {
-    background: #94a3b8;
-    cursor: not-allowed;
-    box-shadow: none;
-  }
+  background: ${props => {
+    const w = (props.$wing || '').toLowerCase();
+    if (w.includes('air')) return '#e0f2fe';
+    if (w.includes('navy')) return '#e0e7ff';
+    return '#fee2e2';
+  }};
+  color: ${props => {
+    const w = (props.$wing || '').toLowerCase();
+    if (w.includes('air')) return '#0369a1';
+    if (w.includes('navy')) return '#4338ca';
+    return '#b91c1c';
+  }};
 `;
 
-const FileUploadArea = styled.div`
+const ExcelUploadBox = styled.div`
   border: 2px dashed #cbd5e1;
   border-radius: 14px;
-  padding: 2rem 1rem;
+  padding: 1.75rem 1rem;
   text-align: center;
   background: #f8fafc;
   cursor: pointer;
+  margin-bottom: 1.25rem;
   transition: all 0.2s;
 
   &:hover {
@@ -295,15 +349,54 @@ const FileUploadArea = styled.div`
   }
 `;
 
+const NoticeAlert = styled.div`
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+// Helper: Calculate engineering year from batch (matches junior's logic)
+const calculateYear = (batch) => {
+  if (!batch) return 'II Year';
+  const str = String(batch).trim();
+  if (/^I$|^1$/i.test(str)) return 'I Year';
+  if (/^II$|^2$/i.test(str)) return 'II Year';
+  if (/^III$|^3$/i.test(str)) return 'III Year';
+  if (/^IV$|^4$/i.test(str)) return 'IV Year';
+  if (str.includes('Year')) return str;
+
+  // Extract start year from batch like "2024-2027" or "2024"
+  const match = str.match(/\d{4}/);
+  if (match) {
+    const startYear = parseInt(match[0], 10);
+    const refYear = 2026; // Reference academic year
+    const diff = refYear - startYear;
+    const yrNum = diff + 1;
+    if (yrNum === 1) return 'I Year';
+    if (yrNum === 2) return 'II Year';
+    if (yrNum === 3) return 'III Year';
+    if (yrNum === 4) return 'IV Year';
+    if (yrNum > 4) return 'Passed Out';
+    return `${yrNum} Year`;
+  }
+  return 'II Year';
+};
+
 const AdminODGeneratorPage = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('native'); // 'native' | 'python'
 
-  // Cadet Data State
-  const [cadetSource, setCadetSource] = useState('firestore'); // 'firestore' | 'excel'
-  const [firestoreCadets, setFirestoreCadets] = useState([]);
+  // Cadet Data
+  const [source, setSource] = useState('firestore'); // 'firestore' | 'excel'
+  const [dbCadets, setDbCadets] = useState([]);
   const [excelCadets, setExcelCadets] = useState([]);
-  const [loadingCadets, setLoadingCadets] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -314,14 +407,15 @@ const AdminODGeneratorPage = () => {
   // Selected Cadet IDs
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  // Letter Form State
+  // Form State
   const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [toDate, setToDate] = useState('');
-  const [programLocation, setProgramLocation] = useState('');
+  const [programLocation, setProgramLocation] = useState('Sri Sairam Engineering College');
   const [programDetails, setProgramDetails] = useState('');
   const [programTime, setProgramTime] = useState('09:00 AM to 04:00 PM');
-  const [academicYear, setAcademicYear] = useState('');
+  const [academicYearOverride, setAcademicYearOverride] = useState('');
   const [sincerelyName, setSincerelyName] = useState('Associate NCC Officer');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [fromAddress, setFromAddress] = useState(
 `The Commanding Officer / ANO
 Sri Sairam Engineering College
@@ -333,89 +427,92 @@ Sri Sairam Engineering College
 Chennai`
   );
   const [customLetterContent, setCustomLetterContent] = useState('');
+
+  // Generation status
   const [generating, setGenerating] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successNotice, setSuccessNotice] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  // Python server state for Tab 2
-  const [pyOnline, setPyOnline] = useState(false);
+  // 1. Fetch cadets directly from the website's Firebase Firestore database
+  const loadDatabaseCadets = async () => {
+    setLoading(true);
+    setErrorMessage('');
+    try {
+      const snap = await getDocs(collection(db, 'cadets'));
+      const cadets = snap.docs.map(doc => {
+        const d = doc.data();
+        const computedYear = calculateYear(d.Batch || d.year || d.Year);
+        return {
+          id: doc.id,
+          secID: d.secID || d.regimentalNo || d.registrationNo || d.regNo || d.id || doc.id,
+          student_id: d.secID || d.regimentalNo || d.regNo || doc.id,
+          name: d.Name || d.name || 'Cadet',
+          dept: (d.dept || d.department || '').toUpperCase(),
+          department: (d.dept || d.department || '').toUpperCase(),
+          wing: d.Wing || d.wing || 'Army',
+          year: computedYear,
+          yearDisplay: computedYear,
+          batch: d.Batch || '',
+          rank: d.rank || 'CDT'
+        };
+      });
 
-  // Fetch Firestore Cadets
+      // Sort alphabetically by name
+      cadets.sort((a, b) => a.name.localeCompare(b.name));
+      setDbCadets(cadets);
+    } catch (err) {
+      console.error("Error fetching cadets from Firestore:", err);
+      setErrorMessage("Could not load cadets from website database. Please check your connection.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadCadets = async () => {
-      try {
-        const snap = await getDocs(collection(db, 'cadets'));
-        const list = snap.docs.map(doc => {
-          const d = doc.data();
-          return {
-            id: doc.id,
-            student_id: d.regNo || d.regimentNo || d.id || doc.id,
-            name: d.Name || d.name || 'Unnamed',
-            department: d.dept || d.department || '',
-            wing: d.Wing || d.wing || 'Army',
-            year: d.year || d.Year || (d.Batch ? d.Batch.toString().slice(0, 4) : ''),
-            section: d.section || d.Section || 'A',
-            rank: d.rank || 'CDT'
-          };
-        });
-        setFirestoreCadets(list);
-      } catch (err) {
-        console.error("Error loading cadets from Firestore:", err);
-      } finally {
-        setLoadingCadets(false);
-      }
-    };
-    loadCadets();
+    loadDatabaseCadets();
   }, []);
 
-  // Probe local Python Flask app
-  useEffect(() => {
-    const probe = async () => {
-      try {
-        await fetch('http://127.0.0.1:5000', { mode: 'no-cors' });
-        setPyOnline(true);
-      } catch (_) {
-        setPyOnline(false);
-      }
-    };
-    probe();
-    const interval = setInterval(probe, 6000);
-    return () => clearInterval(interval);
-  }, []);
+  // 2. Active list based on source
+  const activeCadets = source === 'firestore' ? dbCadets : excelCadets;
 
-  // Current active list
-  const activeCadetsList = cadetSource === 'firestore' ? firestoreCadets : excelCadets;
+  // 3. Dynamic Departments list
+  const departments = useMemo(() => {
+    const list = activeCadets.map(c => c.dept || c.department).filter(Boolean);
+    return Array.from(new Set(list)).sort();
+  }, [activeCadets]);
 
-  // Filtered cadets
+  // 4. Filtered cadets
   const filteredCadets = useMemo(() => {
-    return activeCadetsList.filter(c => {
-      if (wingFilter !== 'ALL' && (!c.wing || !c.wing.toLowerCase().includes(wingFilter.toLowerCase()))) {
-        return false;
+    return activeCadets.filter(c => {
+      // Wing filter
+      if (wingFilter !== 'ALL') {
+        const w = (c.wing || '').toLowerCase();
+        if (!w.includes(wingFilter.toLowerCase())) return false;
       }
-      if (deptFilter !== 'ALL' && (!c.department || c.department.toUpperCase() !== deptFilter.toUpperCase())) {
-        return false;
+      // Dept filter
+      if (deptFilter !== 'ALL') {
+        const d = (c.dept || c.department || '').toUpperCase();
+        if (d !== deptFilter.toUpperCase()) return false;
       }
-      if (yearFilter !== 'ALL' && (!c.year || !c.year.toString().includes(yearFilter))) {
-        return false;
+      // Year filter
+      if (yearFilter !== 'ALL') {
+        const y = (c.year || '').toUpperCase();
+        if (!y.includes(yearFilter.toUpperCase())) return false;
       }
+      // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const n = (c.name || '').toLowerCase();
-        const reg = (c.student_id || '').toLowerCase();
-        const d = (c.department || '').toLowerCase();
-        if (!n.includes(q) && !reg.includes(q) && !d.includes(q)) return false;
+        const id = (c.secID || c.student_id || '').toLowerCase();
+        const d = (c.dept || c.department || '').toLowerCase();
+        if (!n.includes(q) && !id.includes(q) && !d.includes(q)) return false;
       }
       return true;
     });
-  }, [activeCadetsList, wingFilter, deptFilter, yearFilter, searchQuery]);
+  }, [activeCadets, wingFilter, deptFilter, yearFilter, searchQuery]);
 
-  // Unique departments for filter
-  const departments = useMemo(() => {
-    const s = new Set(activeCadetsList.map(c => c.department).filter(Boolean));
-    return Array.from(s).sort();
-  }, [activeCadetsList]);
-
-  // Selection handlers
-  const handleSelectCadet = (id) => {
+  // 5. Cadet Selection Handlers
+  const handleToggleCadet = (id) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -424,15 +521,17 @@ Chennai`
     });
   };
 
-  const handleSelectAll = () => {
-    if (selectedIds.size === filteredCadets.length) {
+  const handleSelectAllFiltered = () => {
+    if (selectedIds.size === filteredCadets.length && filteredCadets.length > 0) {
+      // Clear selection
       setSelectedIds(new Set());
     } else {
+      // Select all visible filtered cadets
       setSelectedIds(new Set(filteredCadets.map(c => c.id)));
     }
   };
 
-  // Excel Bulk Upload Handler
+  // 6. Excel Upload Handler
   const handleExcelUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -446,63 +545,74 @@ Chennai`
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws);
 
-        const parsed = data.map((row, idx) => ({
-          id: `excel_${idx}`,
-          student_id: row['SEC ID'] || row['ID'] || row['Reg No'] || row['Regiment No'] || `CADET_${idx + 1}`,
-          name: row['Name'] || row['NAME'] || row['Cadet Name'] || 'Cadet',
-          department: row['Dept'] || row['Department'] || row['DEPT'] || '',
-          year: row['Year'] || row['YEAR'] || '',
-          wing: row['Wing'] || row['WING'] || 'Army',
-          section: row['Sec'] || row['Section'] || 'A'
-        }));
+        const parsed = data.map((row, idx) => {
+          const rawYear = row['Year'] || row['YEAR'] || row['Batch'] || '';
+          const computedYr = calculateYear(rawYear);
+          return {
+            id: `excel_${idx}`,
+            secID: row['SEC ID'] || row['ID'] || row['Reg No'] || row['Regiment No'] || `CADET_${idx + 1}`,
+            student_id: row['SEC ID'] || row['ID'] || row['Reg No'] || row['Regiment No'] || `CADET_${idx + 1}`,
+            name: row['Name'] || row['NAME'] || row['Cadet Name'] || 'Cadet',
+            dept: (row['Dept'] || row['Department'] || row['DEPT'] || '').toUpperCase(),
+            department: (row['Dept'] || row['Department'] || row['DEPT'] || '').toUpperCase(),
+            year: computedYr,
+            yearDisplay: computedYr,
+            wing: row['Wing'] || row['WING'] || 'Army',
+            rank: row['Rank'] || 'CDT'
+          };
+        });
 
         setExcelCadets(parsed);
-        setCadetSource('excel');
+        setSource('excel');
         setSelectedIds(new Set(parsed.map(c => c.id)));
+        setSuccessNotice(`Imported ${parsed.length} cadets from Excel sheet!`);
+        setTimeout(() => setSuccessNotice(''), 4000);
       } catch (err) {
-        alert("Failed to parse Excel file. Please ensure it has valid columns.");
+        alert("Failed to parse Excel file. Please ensure it has valid columns (SEC ID, Name, Dept, Year, Wing).");
       }
     };
     reader.readAsBinaryString(file);
   };
 
-  // Generate Word Document
+  // 7. Generate & Download Microsoft Word (.docx) Letter
   const handleGenerate = async () => {
-    const chosenCadets = activeCadetsList.filter(c => selectedIds.has(c.id));
-    if (chosenCadets.length === 0) {
+    const selectedList = activeCadets.filter(c => selectedIds.has(c.id));
+
+    if (selectedList.length === 0) {
       alert("Please select at least one cadet from the list.");
       return;
     }
     if (!fromDate) {
-      alert("Please specify the From Date.");
+      alert("Please enter the From Date.");
       return;
     }
-    if (!programLocation) {
+    if (!programLocation.trim()) {
       alert("Please enter the Programme Venue/Location.");
       return;
     }
 
     setGenerating(true);
+    setErrorMessage('');
     try {
       await generateAndDownloadODDocx({
-        selectedCadets: chosenCadets,
+        selectedCadets: selectedList,
         fromDate,
         toDate,
         fromAddress,
         toAddress,
-        programLocation,
-        programDetails,
-        programTime,
-        academicYear,
-        sincerelyName,
+        programLocation: programLocation.trim(),
+        programDetails: programDetails.trim(),
+        programTime: programTime.trim(),
+        academicYear: academicYearOverride,
+        sincerelyName: sincerelyName.trim(),
         letterContent: customLetterContent
       });
 
-      setSuccessMessage(`Word OD letter generated for ${chosenCadets.length} cadets!`);
-      setTimeout(() => setSuccessMessage(''), 4000);
+      setSuccessNotice(`Official OD Letter for ${selectedList.length} cadets has been downloaded!`);
+      setTimeout(() => setSuccessNotice(''), 5000);
     } catch (err) {
-      console.error("Docx generation failed:", err);
-      alert("Failed to generate Word document. Please try again.");
+      console.error("Error generating OD letter:", err);
+      setErrorMessage("Failed to generate Word document. Please verify the cadet details.");
     } finally {
       setGenerating(false);
     }
@@ -511,8 +621,10 @@ Chennai`
   return (
     <PageContainer>
       <SEO title="OD Letter Generator | Admin Portal" />
+
       <ContentWrapper>
-        <HeaderCard>
+        {/* TOP BAR */}
+        <TopNav>
           <TitleArea>
             <BackBtn
               whileHover={{ scale: 1.05 }}
@@ -523,366 +635,410 @@ Chennai`
               <ArrowLeft size={20} />
             </BackBtn>
             <div>
-              <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, color: NAVY, display: 'flex', alignItems: 'center', gap: 10 }}>
-                <FileText size={26} color="#d97706" />
-                OD Generator
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', borderRadius: 20, background: '#dbeafe', color: '#1d4ed8' }}>
-                  Cloud Ready • Client Side
-                </span>
-              </h1>
-              <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#64748b' }}>
-                Generate official On Duty Word letters (.docx) and manage cadet participation lists
-              </p>
+              <Title>
+                <FileText size={24} color="#ef5b4d" />
+                OD Letter Generator
+                <Badge $success>
+                  <ShieldCheck size={14} />
+                  Website Cadets Database Active
+                </Badge>
+              </Title>
+              <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: 3 }}>
+                Generate official On Duty (OD) Microsoft Word letters directly in your browser. 100% cloud-ready.
+              </div>
             </div>
           </TitleArea>
 
-          <TabBar>
-            <TabBtn
-              $active={activeTab === 'native'}
-              onClick={() => setActiveTab('native')}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Badge>
+              <Users size={14} />
+              {activeCadets.length} Cadets Available
+            </Badge>
+            <button
+              onClick={loadDatabaseCadets}
+              style={{
+                background: '#f8fafc', border: '1px solid #cbd5e1', padding: '7px 12px',
+                borderRadius: 9, fontSize: '0.8rem', fontWeight: 700, color: NAVY,
+                display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer'
+              }}
+              title="Refresh cadet data from database"
             >
-              <Sparkles size={16} color="#d97706" />
-              Generator Workspace
-            </TabBtn>
+              <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+              Refresh Database
+            </button>
+          </div>
+        </TopNav>
 
-            <TabBtn
-              $active={activeTab === 'python'}
-              onClick={() => setActiveTab('python')}
-            >
-              <Terminal size={16} />
-              Python Server Engine
-              <span style={{
-                width: 8, height: 8, borderRadius: '50%',
-                background: pyOnline ? '#22c55e' : '#f59e0b'
-              }} />
-            </TabBtn>
-          </TabBar>
-        </HeaderCard>
+        {/* FEEDBACK BANNERS */}
+        {successNotice && (
+          <NoticeAlert>
+            <CheckCircle2 size={18} color="#059669" />
+            <span><strong>Success!</strong> {successNotice}</span>
+          </NoticeAlert>
+        )}
 
-        {activeTab === 'native' ? (
-          <Grid>
-            {/* LEFT COLUMN: LETTER CONFIGURATION */}
-            <div>
-              <Card>
-                <CardHeader>
-                  <h2><Calendar size={18} color="#2563eb" /> Programme Details</h2>
-                </CardHeader>
+        {errorMessage && (
+          <NoticeAlert style={{ background: '#fef2f2', borderColor: '#fecaca', color: '#991b1b' }}>
+            <AlertCircle size={18} color="#dc2626" />
+            <span>{errorMessage}</span>
+          </NoticeAlert>
+        )}
 
-                <TwoCols>
-                  <FormGroup>
-                    <label>From Date *</label>
-                    <input
-                      type="date"
-                      value={fromDate}
-                      onChange={e => setFromDate(e.target.value)}
-                    />
-                  </FormGroup>
+        {/* MAIN 2-PANEL LAYOUT */}
+        <LayoutGrid>
+          {/* LEFT PANEL: PROGRAMME DETAILS & GENERATION FORM */}
+          <PanelCard>
+            <CardHeading>
+              <h2>
+                <Calendar size={18} color={ACCENT} />
+                Letter & Programme Details
+              </h2>
+            </CardHeading>
 
-                  <FormGroup>
-                    <label>To Date (Optional)</label>
-                    <input
-                      type="date"
-                      value={toDate}
-                      onChange={e => setToDate(e.target.value)}
-                    />
-                  </FormGroup>
-                </TwoCols>
+            <TwoCols>
+              <FormGroup>
+                <label>From Date *</label>
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={e => setFromDate(e.target.value)}
+                />
+              </FormGroup>
+              <FormGroup>
+                <label>To Date (Optional)</label>
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={e => setToDate(e.target.value)}
+                  placeholder="Leave empty for 1 day"
+                />
+              </FormGroup>
+            </TwoCols>
 
-                <FormGroup>
-                  <label>Programme Venue / Location *</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Marina Beach / OTA Chennai"
-                    value={programLocation}
-                    onChange={e => setProgramLocation(e.target.value)}
-                  />
-                </FormGroup>
+            <FormGroup>
+              <label>Programme Venue / Location *</label>
+              <input
+                type="text"
+                value={programLocation}
+                onChange={e => setProgramLocation(e.target.value)}
+                placeholder="e.g. Sri Sairam Engineering College / Marina Beach"
+              />
+            </FormGroup>
 
-                <FormGroup>
-                  <label>Programme Purpose / Details</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Republic Day Camp Selection Trials"
-                    value={programDetails}
-                    onChange={e => setProgramDetails(e.target.value)}
-                  />
-                </FormGroup>
+            <FormGroup>
+              <label>Purpose / Event Details</label>
+              <input
+                type="text"
+                value={programDetails}
+                onChange={e => setProgramDetails(e.target.value)}
+                placeholder="e.g. CATC Camp / Republic Day Parade Practice"
+              />
+            </FormGroup>
 
-                <FormGroup>
-                  <label>Timings</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 09:00 AM to 04:00 PM"
-                    value={programTime}
-                    onChange={e => setProgramTime(e.target.value)}
-                  />
-                </FormGroup>
-
-                <TwoCols>
-                  <FormGroup>
-                    <label>Academic Year</label>
-                    <select
-                      value={academicYear}
-                      onChange={e => setAcademicYear(e.target.value)}
-                    >
-                      <option value="">Auto / Mixed</option>
-                      <option value="I">I Year</option>
-                      <option value="II">II Year</option>
-                      <option value="III">III Year</option>
-                      <option value="IV">IV Year</option>
-                    </select>
-                  </FormGroup>
-
-                  <FormGroup>
-                    <label>ANO Signatory Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Capt. Dr. A. Arun"
-                      value={sincerelyName}
-                      onChange={e => setSincerelyName(e.target.value)}
-                    />
-                  </FormGroup>
-                </TwoCols>
-
-                <FormGroup>
-                  <label>From Address</label>
-                  <textarea
-                    rows={3}
-                    value={fromAddress}
-                    onChange={e => setFromAddress(e.target.value)}
-                  />
-                </FormGroup>
-
-                <FormGroup>
-                  <label>To Address</label>
-                  <textarea
-                    rows={3}
-                    value={toAddress}
-                    onChange={e => setToAddress(e.target.value)}
-                  />
-                </FormGroup>
-
-                <FormGroup>
-                  <label>Custom Body (Optional)</label>
-                  <textarea
-                    rows={3}
-                    placeholder="Leave blank to use standard official On Duty request format"
-                    value={customLetterContent}
-                    onChange={e => setCustomLetterContent(e.target.value)}
-                  />
-                </FormGroup>
-
-                {successMessage && (
-                  <div style={{ padding: '10px 14px', borderRadius: 10, background: '#dcfce7', color: '#166534', fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8, marginBottom: '1rem' }}>
-                    <CheckCircle2 size={16} /> {successMessage}
-                  </div>
-                )}
-
-                <PrimaryBtn
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  disabled={generating || selectedIds.size === 0}
-                  onClick={handleGenerate}
+            <TwoCols>
+              <FormGroup>
+                <label>Programme Timings</label>
+                <input
+                  type="text"
+                  value={programTime}
+                  onChange={e => setProgramTime(e.target.value)}
+                  placeholder="e.g. 09:00 AM to 04:00 PM"
+                />
+              </FormGroup>
+              <FormGroup>
+                <label>Cadet Academic Year</label>
+                <select
+                  value={academicYearOverride}
+                  onChange={e => setAcademicYearOverride(e.target.value)}
                 >
-                  <Download size={18} />
-                  {generating ? "Creating Word Document..." : `Download Word Letter (${selectedIds.size} Cadets)`}
-                </PrimaryBtn>
-              </Card>
-            </div>
+                  <option value="">Auto (From Cadets)</option>
+                  <option value="I">I Year</option>
+                  <option value="II">II Year</option>
+                  <option value="III">III Year</option>
+                  <option value="IV">IV Year</option>
+                </select>
+              </FormGroup>
+            </TwoCols>
 
-            {/* RIGHT COLUMN: CADET SELECTOR & MASTER LIST */}
-            <div>
-              <Card>
-                <CardHeader>
-                  <h2><Users size={18} color="#059669" /> Select Cadets</h2>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#2563eb', background: '#eff6ff', padding: '4px 10px', borderRadius: 8 }}>
-                    {selectedIds.size} / {filteredCadets.length} Selected
-                  </span>
-                </CardHeader>
+            <FormGroup>
+              <label>Signatory ANO Name</label>
+              <input
+                type="text"
+                value={sincerelyName}
+                onChange={e => setSincerelyName(e.target.value)}
+                placeholder="e.g. Associate NCC Officer or Officer Name"
+              />
+            </FormGroup>
 
-                <SourceToggle>
-                  <SourceBtn
-                    $active={cadetSource === 'firestore'}
-                    onClick={() => setCadetSource('firestore')}
-                  >
-                    <Users size={15} /> Database Cadets ({firestoreCadets.length})
-                  </SourceBtn>
+            {/* ADVANCED ADDRESS BLOCK TOGGLE */}
+            <div style={{ marginTop: 12, marginBottom: 12 }}>
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                style={{
+                  background: 'none', border: 'none', padding: 0,
+                  fontSize: '0.8rem', fontWeight: 700, color: ACCENT,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5
+                }}
+              >
+                <ChevronDown size={14} style={{ transform: showAdvanced ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
+                {showAdvanced ? "Hide Official Address Blocks" : "Edit Official Address Blocks (From / To)"}
+              </button>
 
-                  <SourceBtn
-                    $active={cadetSource === 'excel'}
-                    onClick={() => setCadetSource('excel')}
-                  >
-                    <Upload size={15} /> Excel Upload ({excelCadets.length})
-                  </SourceBtn>
-                </SourceToggle>
-
-                {cadetSource === 'excel' && (
-                  <div style={{ marginBottom: '1.25rem' }}>
-                    <label style={{ display: 'block' }}>
-                      <FileUploadArea>
-                        <Upload size={28} color="#3b82f6" style={{ margin: '0 auto 8px' }} />
-                        <p style={{ margin: 0, fontWeight: 700, color: NAVY }}>Click to Upload Cadet Excel Sheet (.xlsx / .xls)</p>
-                        <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>Supports SEC ID, Name, Department, Year, Wing, Section columns</p>
-                      </FileUploadArea>
-                      <input
-                        type="file"
-                        accept=".xlsx, .xls"
-                        style={{ display: 'none' }}
-                        onChange={handleExcelUpload}
-                      />
-                    </label>
-                  </div>
-                )}
-
-                <FilterBar>
-                  <FormGroup style={{ margin: 0 }}>
-                    <input
-                      type="text"
-                      placeholder="Search Name or Regt No..."
-                      value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
+              {showAdvanced && (
+                <div style={{ marginTop: 12, padding: 12, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+                  <FormGroup>
+                    <label>From Address</label>
+                    <textarea
+                      rows={3}
+                      value={fromAddress}
+                      onChange={e => setFromAddress(e.target.value)}
                     />
                   </FormGroup>
-
                   <FormGroup style={{ margin: 0 }}>
-                    <select
-                      value={wingFilter}
-                      onChange={e => setWingFilter(e.target.value)}
-                    >
-                      <option value="ALL">All Wings</option>
-                      <option value="Army">Army Wing</option>
-                      <option value="Navy">Navy Wing</option>
-                      <option value="Air">Air Wing</option>
-                    </select>
+                    <label>To Address</label>
+                    <textarea
+                      rows={3}
+                      value={toAddress}
+                      onChange={e => setToAddress(e.target.value)}
+                    />
                   </FormGroup>
-
-                  <FormGroup style={{ margin: 0 }}>
-                    <select
-                      value={deptFilter}
-                      onChange={e => setDeptFilter(e.target.value)}
-                    >
-                      <option value="ALL">All Depts</option>
-                      {departments.map(d => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
-                    </select>
-                  </FormGroup>
-                </FilterBar>
-
-                <TableWrap>
-                  <CadetTable>
-                    <thead>
-                      <tr>
-                        <th style={{ width: 40, textAlign: 'center' }}>
-                          <input
-                            type="checkbox"
-                            checked={filteredCadets.length > 0 && selectedIds.size === filteredCadets.length}
-                            onChange={handleSelectAll}
-                          />
-                        </th>
-                        <th>S.No</th>
-                        <th>ID / Regt No</th>
-                        <th>Name</th>
-                        <th>Dept</th>
-                        <th>Year</th>
-                        <th>Wing</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredCadets.map((c, idx) => {
-                        const isSelected = selectedIds.has(c.id);
-                        return (
-                          <tr
-                            key={c.id}
-                            className={isSelected ? 'selected' : ''}
-                            onClick={() => handleSelectCadet(c.id)}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            <CheckboxCell onClick={e => e.stopPropagation()}>
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => handleSelectCadet(c.id)}
-                              />
-                            </CheckboxCell>
-                            <td>{idx + 1}</td>
-                            <td style={{ fontWeight: 700, color: NAVY }}>{c.student_id}</td>
-                            <td style={{ fontWeight: 600 }}>{c.name}</td>
-                            <td>{c.department}</td>
-                            <td>{c.year}</td>
-                            <td>
-                              <span style={{
-                                padding: '2px 8px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 800,
-                                background: c.wing?.toLowerCase().includes('air') ? '#e0f2fe' : c.wing?.toLowerCase().includes('navy') ? '#e0e7ff' : '#fee2e2',
-                                color: c.wing?.toLowerCase().includes('air') ? '#0369a1' : c.wing?.toLowerCase().includes('navy') ? '#4338ca' : '#b91c1c'
-                              }}>
-                                {c.wing || 'Army'}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {filteredCadets.length === 0 && (
-                        <tr>
-                          <td colSpan={7} style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94a3b8' }}>
-                            No cadets found matching your filter.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </CadetTable>
-                </TableWrap>
-              </Card>
-            </div>
-          </Grid>
-        ) : (
-          /* TAB 2: PYTHON FLASK ENGINE */
-          <Card style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '1.25rem 1.75rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Terminal size={20} color={NAVY} />
-                <span style={{ fontWeight: 700, color: NAVY, fontSize: '0.95rem' }}>Python Flask Workspace</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: 12, background: pyOnline ? '#dcfce7' : '#fef3c7', color: pyOnline ? '#166534' : '#b45309' }}>
-                  {pyOnline ? "Online (127.0.0.1:5000)" : "Offline (Not Running)"}
-                </span>
-              </div>
-              {pyOnline && (
-                <button
-                  onClick={() => window.open('http://127.0.0.1:5000/generate', '_blank')}
-                  style={{ background: 'white', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-                >
-                  <ExternalLink size={14} /> Open in New Tab
-                </button>
+                </div>
               )}
             </div>
 
-            {pyOnline ? (
-              <iframe
-                src="http://127.0.0.1:5000/generate"
-                style={{ width: '100%', height: '82vh', border: 'none' }}
-                title="Python OD Generator"
-              />
-            ) : (
-              <div style={{ padding: '4rem 2rem', textAlign: 'center', maxWidth: 640, margin: '0 auto' }}>
-                <div style={{ display: 'inline-flex', padding: 16, borderRadius: '50%', background: '#fef3c7', color: '#d97706', marginBottom: '1.5rem' }}>
-                  <Terminal size={40} />
-                </div>
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: NAVY, margin: '0 0 0.5rem' }}>
-                  Python Server Offline
-                </h3>
-                <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: 1.6 }}>
-                  To run the junior's original Python Flask app locally, double-click <code style={{ fontWeight: 700, color: NAVY }}>run_od_generator.bat</code> in the project root or run:
-                </p>
-                <div style={{ background: '#0f172a', color: '#38bdf8', padding: '10px 18px', borderRadius: 10, fontFamily: 'monospace', margin: '1.25rem 0', display: 'inline-block' }}>
-                  npm run od-generator
-                </div>
-                <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                  Note: The <strong>Generator Workspace</strong> tab works 100% in the cloud without needing any Python server!
-                </p>
+            {/* GENERATE BUTTON */}
+            <ActionButton
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              onClick={handleGenerate}
+              disabled={generating || selectedIds.size === 0}
+            >
+              {generating ? (
+                <>
+                  <RefreshCw size={18} className="animate-spin" />
+                  Generating Document...
+                </>
+              ) : (
+                <>
+                  <Download size={18} />
+                  Download OD Letter (.docx) ({selectedIds.size} Selected)
+                </>
+              )}
+            </ActionButton>
+
+            <p style={{ fontSize: '0.78rem', color: '#64748b', textAlign: 'center', marginTop: 10, marginBottom: 0 }}>
+              Generates an official Microsoft Word file with table, formatted headers, and ANO signature block.
+            </p>
+          </PanelCard>
+
+          {/* RIGHT PANEL: CADETS SELECTION FROM DATABASE */}
+          <PanelCard>
+            <CardHeading>
+              <h2>
+                <Users size={18} color={ACCENT} />
+                Select Cadets from Database
+              </h2>
+
+              <DataSourceTabs style={{ margin: 0 }}>
+                <DataSourceTab
+                  $active={source === 'firestore'}
+                  onClick={() => setSource('firestore')}
+                >
+                  <ShieldCheck size={14} />
+                  Website Cadets
+                </DataSourceTab>
+                <DataSourceTab
+                  $active={source === 'excel'}
+                  onClick={() => setSource('excel')}
+                >
+                  <Upload size={14} />
+                  Excel Upload
+                </DataSourceTab>
+              </DataSourceTabs>
+            </CardHeading>
+
+            {/* EXCEL UPLOAD BOX IF SOURCE IS EXCEL */}
+            {source === 'excel' && (
+              <div>
+                <label>
+                  <ExcelUploadBox>
+                    <Upload size={28} color={ACCENT} style={{ margin: '0 auto 8px', display: 'block' }} />
+                    <strong style={{ color: NAVY, fontSize: '0.95rem' }}>Upload Excel (.xlsx / .xls) File</strong>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>
+                      Auto-detects columns: SEC ID, Name, Department, Year, Wing
+                    </p>
+                  </ExcelUploadBox>
+                  <input
+                    type="file"
+                    accept=".xlsx, .xls"
+                    style={{ display: 'none' }}
+                    onChange={handleExcelUpload}
+                  />
+                </label>
               </div>
             )}
-          </Card>
-        )}
+
+            {/* FILTER CONTROLS */}
+            <FilterGrid>
+              <FormGroup style={{ margin: 0 }}>
+                <label>Search</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    placeholder="Search Name, Regt No, SEC ID..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    style={{ paddingLeft: 34 }}
+                  />
+                  <Search size={15} color="#94a3b8" style={{ position: 'absolute', left: 12, top: 12 }} />
+                </div>
+              </FormGroup>
+
+              <FormGroup style={{ margin: 0 }}>
+                <label>Wing</label>
+                <select value={wingFilter} onChange={e => setWingFilter(e.target.value)}>
+                  <option value="ALL">All Wings</option>
+                  <option value="Army">Army Wing</option>
+                  <option value="Navy">Navy Wing</option>
+                  <option value="Air">Air Wing</option>
+                </select>
+              </FormGroup>
+
+              <FormGroup style={{ margin: 0 }}>
+                <label>Department</label>
+                <select value={deptFilter} onChange={e => setDeptFilter(e.target.value)}>
+                  <option value="ALL">All Depts</option>
+                  {departments.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </FormGroup>
+
+              <FormGroup style={{ margin: 0 }}>
+                <label>Year</label>
+                <select value={yearFilter} onChange={e => setYearFilter(e.target.value)}>
+                  <option value="ALL">All Years</option>
+                  <option value="I Year">I Year</option>
+                  <option value="II Year">II Year</option>
+                  <option value="III Year">III Year</option>
+                  <option value="IV Year">IV Year</option>
+                </select>
+              </FormGroup>
+            </FilterGrid>
+
+            {/* SELECTION TOOLBAR */}
+            <SelectionBar style={{ marginTop: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <SelectAllBtn onClick={handleSelectAllFiltered}>
+                  {selectedIds.size === filteredCadets.length && filteredCadets.length > 0 ? (
+                    <CheckSquare size={16} color={ACCENT} />
+                  ) : (
+                    <Square size={16} color="#94a3b8" />
+                  )}
+                  {selectedIds.size === filteredCadets.length && filteredCadets.length > 0
+                    ? "Deselect All Filtered"
+                    : `Select All Filtered (${filteredCadets.length})`}
+                </SelectAllBtn>
+
+                {selectedIds.size > 0 && (
+                  <button
+                    onClick={() => setSelectedIds(new Set())}
+                    style={{ background: 'none', border: 'none', fontSize: '0.8rem', color: '#ef4444', cursor: 'pointer', fontWeight: 600 }}
+                  >
+                    Clear Selection
+                  </button>
+                )}
+              </div>
+
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: NAVY }}>
+                <span style={{ color: ACCENT, fontSize: '1rem', fontWeight: 800 }}>{selectedIds.size}</span> cadets selected
+              </div>
+            </SelectionBar>
+
+            {/* CADETS TABLE */}
+            <TableWrapper>
+              <StyledTable>
+                <thead>
+                  <tr>
+                    <th style={{ width: 44, textAlign: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={filteredCadets.length > 0 && selectedIds.size === filteredCadets.length}
+                        onChange={handleSelectAllFiltered}
+                        title="Select/Deselect All"
+                      />
+                    </th>
+                    <th style={{ width: 50 }}>S.No</th>
+                    <th>SEC ID / Regt No</th>
+                    <th>Cadet Name</th>
+                    <th>Dept</th>
+                    <th>Year</th>
+                    <th>Wing</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#64748b' }}>
+                        <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 10px', display: 'block', color: ACCENT }} />
+                        Loading Cadets from Website Database...
+                      </td>
+                    </tr>
+                  ) : filteredCadets.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#94a3b8' }}>
+                        No cadets found matching your filter criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredCadets.map((cadet, index) => {
+                      const isSelected = selectedIds.has(cadet.id);
+                      return (
+                        <tr
+                          key={cadet.id}
+                          className={isSelected ? 'selected' : ''}
+                          onClick={() => handleToggleCadet(cadet.id)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <td style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleCadet(cadet.id)}
+                            />
+                          </td>
+                          <td style={{ fontWeight: 600, color: '#64748b' }}>{index + 1}</td>
+                          <td style={{ fontWeight: 700, color: NAVY }}>{cadet.secID}</td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontWeight: 700 }}>{cadet.name}</span>
+                              {cadet.rank && cadet.rank !== 'CDT' && (
+                                <span style={{
+                                  fontSize: '0.7rem', padding: '1px 5px', borderRadius: 4,
+                                  background: '#fef3c7', color: '#92400e', fontWeight: 800
+                                }}>
+                                  {cadet.rank}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td style={{ fontWeight: 600 }}>{cadet.dept || '—'}</td>
+                          <td style={{ color: '#475569' }}>{cadet.year || '—'}</td>
+                          <td>
+                            <WingPill $wing={cadet.wing}>
+                              {cadet.wing || 'Army'}
+                            </WingPill>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </StyledTable>
+            </TableWrapper>
+          </PanelCard>
+        </LayoutGrid>
       </ContentWrapper>
     </PageContainer>
   );

@@ -147,12 +147,12 @@ export const generateAndDownloadODDocx = async ({
 
   const cadetRows = selectedCadets.map((c, idx) => {
     const sNo = String(idx + 1);
-    const id = c.student_id || c.regNo || c.regimentNo || c.id || '';
-    const name = c.name || c.Name || '';
-    const yr = c.year || c.Year || c.seniority?.label || '';
+    const id = c.secID || c.student_id || c.regimentalNo || c.regNo || c.regimentNo || c.registrationNo || c.id || '';
+    const name = c.Name || c.name || '';
+    const yr = c.yearDisplay || c.year || c.Year || (typeof c.seniority === 'object' ? c.seniority?.label : c.seniority) || '';
     const yrDisplay = yr.includes('Year') ? yr : (yr ? `${yr} Year` : '');
-    const dept = c.department || c.dept || '';
-    const wing = c.wing || c.Wing || '';
+    const dept = c.dept || c.department || '';
+    const wing = c.Wing || c.wing || '';
 
     const rowValues = [sNo, id, name, yrDisplay, dept, wing];
 
