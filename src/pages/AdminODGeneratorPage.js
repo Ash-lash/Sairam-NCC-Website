@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   FileText, Download, Upload, Search, CheckSquare, Square,
   CheckCircle2, AlertCircle, RefreshCw, ArrowLeft, Users,
-  Calendar, MapPin, Clock, ShieldCheck, Filter, ChevronDown,
-  Sparkles, Layers
+  Calendar, ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { collection, getDocs } from 'firebase/firestore';
@@ -15,20 +14,19 @@ import SEO from '../components/common/SEO';
 import { generateAndDownloadODDocx } from '../utils/odDocxGenerator';
 
 const NAVY = "#1a2b4c";
-const GOLD = "#FFBF00";
-const ACCENT = "#2563eb";
+const ACCENT = "#0284c7";
 
 // --- STYLES ---
 const PageContainer = styled.div`
   min-height: 100vh;
   background: #f8fafc;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   padding-top: 96px;
   padding-bottom: 5rem;
 `;
 
 const ContentWrapper = styled.div`
-  max-width: 1520px;
+  max-width: 1560px;
   margin: 0 auto;
   padding: 0 1.5rem;
 `;
@@ -36,9 +34,9 @@ const ContentWrapper = styled.div`
 const TopNav = styled.div`
   background: white;
   padding: 1.25rem 2rem;
-  border-radius: 20px;
+  border-radius: 18px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   margin-bottom: 1.75rem;
   display: flex;
   align-items: center;
@@ -92,21 +90,21 @@ const Badge = styled.span`
 
 const LayoutGrid = styled.div`
   display: grid;
-  grid-template-columns: 460px 1fr;
+  grid-template-columns: 560px 1fr;
   gap: 1.75rem;
   align-items: start;
 
-  @media (max-width: 1180px) {
+  @media (max-width: 1280px) {
     grid-template-columns: 1fr;
   }
 `;
 
 const PanelCard = styled.div`
   background: white;
-  border-radius: 20px;
+  border-radius: 16px;
   border: 1px solid #e2e8f0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-  padding: 1.75rem;
+  padding: 1.75rem 2rem;
   position: relative;
 `;
 
@@ -114,18 +112,15 @@ const CardHeading = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.25rem;
-  padding-bottom: 0.85rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid #f1f5f9;
 
   h2 {
-    font-size: 1.15rem;
+    font-size: 1.25rem;
     font-weight: 800;
-    color: ${NAVY};
+    color: #1e293b;
     margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
   }
 `;
 
@@ -133,35 +128,38 @@ const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 1.1rem;
+  margin-bottom: 1.15rem;
 
   label {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: #475569;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #334155;
   }
 
   input, select, textarea {
     padding: 10px 14px;
-    border-radius: 10px;
+    border-radius: 8px;
     border: 1px solid #cbd5e1;
-    font-size: 0.9rem;
+    font-size: 0.92rem;
     font-family: inherit;
     color: #1e293b;
     outline: none;
+    background: #ffffff;
     transition: all 0.2s;
 
     &:focus {
       border-color: ${ACCENT};
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+    }
+
+    &::placeholder {
+      color: #94a3b8;
     }
   }
 
   textarea {
     resize: vertical;
-    font-size: 0.85rem;
+    font-size: 0.88rem;
     line-height: 1.5;
   }
 `;
@@ -169,16 +167,20 @@ const FormGroup = styled.div`
 const TwoCols = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 const ActionButton = styled(motion.button)`
-  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   color: white;
   border: none;
   width: 100%;
   padding: 15px 20px;
-  border-radius: 14px;
+  border-radius: 12px;
   font-size: 1rem;
   font-weight: 800;
   cursor: pointer;
@@ -186,13 +188,13 @@ const ActionButton = styled(motion.button)`
   align-items: center;
   justify-content: center;
   gap: 10px;
-  box-shadow: 0 6px 16px rgba(29, 78, 216, 0.28);
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
   transition: all 0.2s;
   margin-top: 1.25rem;
 
   &:hover:not(:disabled) {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-    box-shadow: 0 8px 20px rgba(29, 78, 216, 0.38);
+    background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+    box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35);
   }
 
   &:disabled {
@@ -206,20 +208,18 @@ const DataSourceTabs = styled.div`
   display: flex;
   background: #f1f5f9;
   padding: 4px;
-  border-radius: 12px;
+  border-radius: 10px;
   gap: 4px;
-  margin-bottom: 1.25rem;
 `;
 
 const DataSourceTab = styled.button`
-  flex: 1;
-  padding: 8px 14px;
+  padding: 7px 14px;
   border: none;
-  border-radius: 9px;
+  border-radius: 7px;
   background: ${props => props.$active ? 'white' : 'transparent'};
   color: ${props => props.$active ? NAVY : '#64748b'};
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -249,7 +249,7 @@ const SelectionBar = styled.div`
   justify-content: space-between;
   background: #f8fafc;
   padding: 10px 16px;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid #e2e8f0;
   margin-bottom: 1rem;
   flex-wrap: wrap;
@@ -274,9 +274,9 @@ const SelectAllBtn = styled.button`
 
 const TableWrapper = styled.div`
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border-radius: 12px;
   overflow: hidden;
-  max-height: 580px;
+  max-height: 640px;
   overflow-y: auto;
   background: white;
 `;
@@ -296,6 +296,15 @@ const StyledTable = styled.table`
     top: 0;
     z-index: 2;
     border-bottom: 1px solid #e2e8f0;
+    user-select: none;
+
+    &.sortable {
+      cursor: pointer;
+      &:hover {
+        background: #f1f5f9;
+        color: ${NAVY};
+      }
+    }
   }
 
   td {
@@ -310,14 +319,23 @@ const StyledTable = styled.table`
   }
 
   tr.selected td {
-    background: #eff6ff;
+    background: #f0f9ff;
+  }
+
+  tr.passed-out td {
+    background: #fafafa;
+    color: #64748b;
+  }
+
+  tr.passed-out.selected td {
+    background: #f1f5f9;
   }
 `;
 
 const WingPill = styled.span`
   padding: 2px 8px;
   border-radius: 6px;
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   font-weight: 800;
   background: ${props => {
     const w = (props.$wing || '').toLowerCase();
@@ -333,10 +351,20 @@ const WingPill = styled.span`
   }};
 `;
 
+const YearPill = styled.span`
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: ${props => props.$isPassedOut ? '#f1f5f9' : '#e0f2fe'};
+  color: ${props => props.$isPassedOut ? '#64748b' : '#0369a1'};
+  border: 1px solid ${props => props.$isPassedOut ? '#e2e8f0' : '#bae6fd'};
+`;
+
 const ExcelUploadBox = styled.div`
   border: 2px dashed #cbd5e1;
-  border-radius: 14px;
-  padding: 1.75rem 1rem;
+  border-radius: 12px;
+  padding: 1.5rem 1rem;
   text-align: center;
   background: #f8fafc;
   cursor: pointer;
@@ -345,7 +373,7 @@ const ExcelUploadBox = styled.div`
 
   &:hover {
     border-color: ${ACCENT};
-    background: #eff6ff;
+    background: #f0f9ff;
   }
 `;
 
@@ -362,33 +390,74 @@ const NoticeAlert = styled.div`
   gap: 10px;
 `;
 
-// Helper: Calculate engineering year from batch (matches junior's logic)
-const calculateYear = (batch) => {
-  if (!batch) return 'II Year';
-  const str = String(batch).trim();
-  if (/^I$|^1$/i.test(str)) return 'I Year';
-  if (/^II$|^2$/i.test(str)) return 'II Year';
-  if (/^III$|^3$/i.test(str)) return 'III Year';
-  if (/^IV$|^4$/i.test(str)) return 'IV Year';
-  if (str.includes('Year')) return str;
-
-  // Extract start year from batch like "2024-2027" or "2024"
-  const match = str.match(/\d{4}/);
-  if (match) {
-    const startYear = parseInt(match[0], 10);
-    const refYear = 2026; // Reference academic year
-    const diff = refYear - startYear;
-    const yrNum = diff + 1;
-    if (yrNum === 1) return 'I Year';
-    if (yrNum === 2) return 'II Year';
-    if (yrNum === 3) return 'III Year';
-    if (yrNum === 4) return 'IV Year';
-    if (yrNum > 4) return 'Passed Out';
-    return `${yrNum} Year`;
+const DividerRow = styled.tr`
+  td {
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    font-size: 0.75rem !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    padding: 8px 14px !important;
+    border-top: 1px solid #e2e8f0 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
   }
-  return 'II Year';
+`;
+
+// ============================================================
+// CADET SENIORITY / YEAR HELPER
+// ============================================================
+const getCadetSeniority = (data) => {
+  // If explicitly flagged as passed out or alumni
+  if (data.isPassedOut === true || data.isAlumni === true || data.status === 'alumni' || data.status === 'passed_out') {
+    return { isPassedOut: true, yearLabel: 'Passed Out', yearOrder: 99 };
+  }
+
+  const batchStr = String(data.Batch || data.batch || data.year || data.Year || '').trim();
+
+  if (/passed\s*out/i.test(batchStr)) {
+    return { isPassedOut: true, yearLabel: 'Passed Out', yearOrder: 99 };
+  }
+
+  // Extract 4-digit start year
+  const match = batchStr.match(/\d{4}/);
+  if (!match) {
+    if (/^I$|^1$|I Year/i.test(batchStr)) return { isPassedOut: false, yearLabel: 'I Year', yearOrder: 1 };
+    if (/^II$|^2$|II Year/i.test(batchStr)) return { isPassedOut: false, yearLabel: 'II Year', yearOrder: 2 };
+    if (/^III$|^3$|III Year/i.test(batchStr)) return { isPassedOut: false, yearLabel: 'III Year', yearOrder: 3 };
+    if (/^IV$|^4$|IV Year/i.test(batchStr)) return { isPassedOut: false, yearLabel: 'IV Year', yearOrder: 4 };
+    return { isPassedOut: false, yearLabel: 'Active', yearOrder: 2 };
+  }
+
+  const startYear = parseInt(match[0], 10);
+  const now = new Date();
+  const currentYear = now.getFullYear();
+
+  // In Sri Sairam NCC / Engineering, batches after startYear + 3 pass out
+  const passOutDate = new Date(startYear + 3, 2, 31);
+  if (now > passOutDate || startYear <= 2022) {
+    return { isPassedOut: true, yearLabel: 'Passed Out', yearOrder: 99 };
+  }
+
+  // Engineering reference mapping:
+  // 2024 -> III Year
+  // 2025 -> II Year
+  // 2026 -> I Year
+  // 2023 -> IV Year
+  const diff = currentYear - startYear;
+  const yrNum = diff + 1;
+
+  if (yrNum === 1) return { isPassedOut: false, yearLabel: 'I Year', yearOrder: 1 };
+  if (yrNum === 2) return { isPassedOut: false, yearLabel: 'II Year', yearOrder: 2 };
+  if (yrNum === 3) return { isPassedOut: false, yearLabel: 'III Year', yearOrder: 3 };
+  if (yrNum === 4) return { isPassedOut: false, yearLabel: 'IV Year', yearOrder: 4 };
+
+  return { isPassedOut: true, yearLabel: 'Passed Out', yearOrder: 99 };
 };
 
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 const AdminODGeneratorPage = () => {
   const navigate = useNavigate();
 
@@ -407,15 +476,21 @@ const AdminODGeneratorPage = () => {
   // Selected Cadet IDs
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  // Form State
+  // Sorting State
+  // Columns: 'sno', 'secID', 'name', 'dept', 'year', 'wing'
+  const [sortConfig, setSortConfig] = useState({
+    key: 'name',
+    direction: 'asc'
+  });
+
+  // OD Letter Form State (Exact matching user screenshot)
   const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [toDate, setToDate] = useState('');
-  const [programLocation, setProgramLocation] = useState('Sri Sairam Engineering College');
+  const [programLocation, setProgramLocation] = useState('');
   const [programDetails, setProgramDetails] = useState('');
-  const [programTime, setProgramTime] = useState('09:00 AM to 04:00 PM');
-  const [academicYearOverride, setAcademicYearOverride] = useState('');
-  const [sincerelyName, setSincerelyName] = useState('Associate NCC Officer');
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [programTime, setProgramTime] = useState('');
+  const [academicYear, setAcademicYear] = useState('');
+  const [sincerelyName, setSincerelyName] = useState('');
   const [fromAddress, setFromAddress] = useState(
 `The Commanding Officer / ANO
 Sri Sairam Engineering College
@@ -426,42 +501,42 @@ Chennai`
 Sri Sairam Engineering College
 Chennai`
   );
-  const [customLetterContent, setCustomLetterContent] = useState('');
+  const [letterContent, setLetterContent] = useState('');
 
   // Generation status
   const [generating, setGenerating] = useState(false);
   const [successNotice, setSuccessNotice] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // 1. Fetch cadets directly from the website's Firebase Firestore database
+  // Fetch cadets from Firestore database
   const loadDatabaseCadets = async () => {
     setLoading(true);
     setErrorMessage('');
     try {
       const snap = await getDocs(collection(db, 'cadets'));
-      const cadets = snap.docs.map(doc => {
+      const cadets = snap.docs.map((doc, idx) => {
         const d = doc.data();
-        const computedYear = calculateYear(d.Batch || d.year || d.Year);
+        const seniority = getCadetSeniority(d);
         return {
           id: doc.id,
+          originalIndex: idx + 1,
           secID: d.secID || d.regimentalNo || d.registrationNo || d.regNo || d.id || doc.id,
           student_id: d.secID || d.regimentalNo || d.regNo || doc.id,
           name: d.Name || d.name || 'Cadet',
           dept: (d.dept || d.department || '').toUpperCase(),
           department: (d.dept || d.department || '').toUpperCase(),
           wing: d.Wing || d.wing || 'Army',
-          year: computedYear,
-          yearDisplay: computedYear,
-          batch: d.Batch || '',
+          year: seniority.yearLabel,
+          yearDisplay: seniority.yearLabel,
+          yearOrder: seniority.yearOrder,
+          isPassedOut: seniority.isPassedOut,
           rank: d.rank || 'CDT'
         };
       });
 
-      // Sort alphabetically by name
-      cadets.sort((a, b) => a.name.localeCompare(b.name));
       setDbCadets(cadets);
     } catch (err) {
-      console.error("Error fetching cadets from Firestore:", err);
+      console.error("Error fetching cadets:", err);
       setErrorMessage("Could not load cadets from website database. Please check your connection.");
     } finally {
       setLoading(false);
@@ -472,18 +547,48 @@ Chennai`
     loadDatabaseCadets();
   }, []);
 
-  // 2. Active list based on source
-  const activeCadets = source === 'firestore' ? dbCadets : excelCadets;
+  // Active dataset
+  const activeDataset = source === 'firestore' ? dbCadets : excelCadets;
 
-  // 3. Dynamic Departments list
+  // Unique departments for filter dropdown
   const departments = useMemo(() => {
-    const list = activeCadets.map(c => c.dept || c.department).filter(Boolean);
+    const list = activeDataset.map(c => c.dept || c.department).filter(Boolean);
     return Array.from(new Set(list)).sort();
-  }, [activeCadets]);
+  }, [activeDataset]);
 
-  // 4. Filtered cadets
-  const filteredCadets = useMemo(() => {
-    return activeCadets.filter(c => {
+  // Handle column header click for sorting
+  const handleSort = (columnKey) => {
+    setSortConfig(prev => {
+      if (prev.key === columnKey) {
+        return {
+          key: columnKey,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        };
+      }
+      return {
+        key: columnKey,
+        direction: 'asc'
+      };
+    });
+  };
+
+  // Render sort icon next to header
+  const renderSortIndicator = (columnKey) => {
+    if (sortConfig.key !== columnKey) {
+      return <ArrowUpDown size={13} style={{ marginLeft: 4, opacity: 0.35, verticalAlign: 'middle' }} />;
+    }
+    return sortConfig.direction === 'asc' ? (
+      <ArrowUp size={13} style={{ marginLeft: 4, color: ACCENT, verticalAlign: 'middle' }} />
+    ) : (
+      <ArrowDown size={13} style={{ marginLeft: 4, color: ACCENT, verticalAlign: 'middle' }} />
+    );
+  };
+
+  // Filtered & Sorted Cadets
+  // CRITICAL RULE: Passed out cadets must ALWAYS be at the end, regardless of sorting column!
+  const sortedAndFilteredCadets = useMemo(() => {
+    // 1. Filter
+    const filtered = activeDataset.filter(c => {
       // Wing filter
       if (wingFilter !== 'ALL') {
         const w = (c.wing || '').toLowerCase();
@@ -496,8 +601,14 @@ Chennai`
       }
       // Year filter
       if (yearFilter !== 'ALL') {
-        const y = (c.year || '').toUpperCase();
-        if (!y.includes(yearFilter.toUpperCase())) return false;
+        if (yearFilter === 'ACTIVE_ONLY') {
+          if (c.isPassedOut) return false;
+        } else if (yearFilter === 'PASSED_OUT') {
+          if (!c.isPassedOut) return false;
+        } else {
+          const y = (c.year || '').toUpperCase();
+          if (!y.includes(yearFilter.toUpperCase())) return false;
+        }
       }
       // Search query
       if (searchQuery.trim()) {
@@ -509,9 +620,66 @@ Chennai`
       }
       return true;
     });
-  }, [activeCadets, wingFilter, deptFilter, yearFilter, searchQuery]);
 
-  // 5. Cadet Selection Handlers
+    // 2. Separate into Active Cadets and Passed Out Cadets
+    const active = [];
+    const passedOut = [];
+
+    for (const cadet of filtered) {
+      if (cadet.isPassedOut) {
+        passedOut.push(cadet);
+      } else {
+        active.push(cadet);
+      }
+    }
+
+    // 3. Comparison function based on sortConfig
+    const comparator = (a, b) => {
+      let valA, valB;
+      switch (sortConfig.key) {
+        case 'sno':
+          valA = a.originalIndex || 0;
+          valB = b.originalIndex || 0;
+          break;
+        case 'secID':
+          valA = (a.secID || a.student_id || '').toLowerCase();
+          valB = (b.secID || b.student_id || '').toLowerCase();
+          break;
+        case 'name':
+          valA = (a.name || '').toLowerCase();
+          valB = (b.name || '').toLowerCase();
+          break;
+        case 'dept':
+          valA = (a.dept || a.department || '').toLowerCase();
+          valB = (b.dept || b.department || '').toLowerCase();
+          break;
+        case 'year':
+          valA = a.yearOrder || 0;
+          valB = b.yearOrder || 0;
+          break;
+        case 'wing':
+          valA = (a.wing || '').toLowerCase();
+          valB = (b.wing || '').toLowerCase();
+          break;
+        default:
+          valA = (a.name || '').toLowerCase();
+          valB = (b.name || '').toLowerCase();
+      }
+
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    };
+
+    // 4. Sort each group independently by the chosen column
+    active.sort(comparator);
+    passedOut.sort(comparator);
+
+    // 5. Concatenate: Active cadets first, Passed Out cadets ALWAYS at the end!
+    return [...active, ...passedOut];
+  }, [activeDataset, wingFilter, deptFilter, yearFilter, searchQuery, sortConfig]);
+
+  // Cadet Selection Handlers
   const handleToggleCadet = (id) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
@@ -522,16 +690,14 @@ Chennai`
   };
 
   const handleSelectAllFiltered = () => {
-    if (selectedIds.size === filteredCadets.length && filteredCadets.length > 0) {
-      // Clear selection
+    if (selectedIds.size === sortedAndFilteredCadets.length && sortedAndFilteredCadets.length > 0) {
       setSelectedIds(new Set());
     } else {
-      // Select all visible filtered cadets
-      setSelectedIds(new Set(filteredCadets.map(c => c.id)));
+      setSelectedIds(new Set(sortedAndFilteredCadets.map(c => c.id)));
     }
   };
 
-  // 6. Excel Upload Handler
+  // Excel Bulk Upload Handler
   const handleExcelUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -547,16 +713,19 @@ Chennai`
 
         const parsed = data.map((row, idx) => {
           const rawYear = row['Year'] || row['YEAR'] || row['Batch'] || '';
-          const computedYr = calculateYear(rawYear);
+          const seniority = getCadetSeniority({ Batch: rawYear });
           return {
             id: `excel_${idx}`,
+            originalIndex: idx + 1,
             secID: row['SEC ID'] || row['ID'] || row['Reg No'] || row['Regiment No'] || `CADET_${idx + 1}`,
             student_id: row['SEC ID'] || row['ID'] || row['Reg No'] || row['Regiment No'] || `CADET_${idx + 1}`,
             name: row['Name'] || row['NAME'] || row['Cadet Name'] || 'Cadet',
             dept: (row['Dept'] || row['Department'] || row['DEPT'] || '').toUpperCase(),
             department: (row['Dept'] || row['Department'] || row['DEPT'] || '').toUpperCase(),
-            year: computedYr,
-            yearDisplay: computedYr,
+            year: seniority.yearLabel,
+            yearDisplay: seniority.yearLabel,
+            yearOrder: seniority.yearOrder,
+            isPassedOut: seniority.isPassedOut,
             wing: row['Wing'] || row['WING'] || 'Army',
             rank: row['Rank'] || 'CDT'
           };
@@ -565,7 +734,7 @@ Chennai`
         setExcelCadets(parsed);
         setSource('excel');
         setSelectedIds(new Set(parsed.map(c => c.id)));
-        setSuccessNotice(`Imported ${parsed.length} cadets from Excel sheet!`);
+        setSuccessNotice(`Imported ${parsed.length} cadets from Excel file.`);
         setTimeout(() => setSuccessNotice(''), 4000);
       } catch (err) {
         alert("Failed to parse Excel file. Please ensure it has valid columns (SEC ID, Name, Dept, Year, Wing).");
@@ -574,20 +743,20 @@ Chennai`
     reader.readAsBinaryString(file);
   };
 
-  // 7. Generate & Download Microsoft Word (.docx) Letter
+  // Generate & Download Word Document
   const handleGenerate = async () => {
-    const selectedList = activeCadets.filter(c => selectedIds.has(c.id));
+    const selectedList = activeDataset.filter(c => selectedIds.has(c.id));
 
     if (selectedList.length === 0) {
       alert("Please select at least one cadet from the list.");
       return;
     }
     if (!fromDate) {
-      alert("Please enter the From Date.");
+      alert("Please enter From Date.");
       return;
     }
     if (!programLocation.trim()) {
-      alert("Please enter the Programme Venue/Location.");
+      alert("Please enter Program Location.");
       return;
     }
 
@@ -598,21 +767,21 @@ Chennai`
         selectedCadets: selectedList,
         fromDate,
         toDate,
-        fromAddress,
-        toAddress,
+        fromAddress: fromAddress.trim(),
+        toAddress: toAddress.trim(),
         programLocation: programLocation.trim(),
         programDetails: programDetails.trim(),
         programTime: programTime.trim(),
-        academicYear: academicYearOverride,
-        sincerelyName: sincerelyName.trim(),
-        letterContent: customLetterContent
+        academicYear: academicYear.trim(),
+        sincerelyName: sincerelyName.trim() || 'Associate NCC Officer',
+        letterContent: letterContent.trim()
       });
 
-      setSuccessNotice(`Official OD Letter for ${selectedList.length} cadets has been downloaded!`);
+      setSuccessNotice(`Official OD Letter for ${selectedList.length} cadets generated & downloaded successfully!`);
       setTimeout(() => setSuccessNotice(''), 5000);
     } catch (err) {
       console.error("Error generating OD letter:", err);
-      setErrorMessage("Failed to generate Word document. Please verify the cadet details.");
+      setErrorMessage("Failed to generate Word document. Please verify the input fields.");
     } finally {
       setGenerating(false);
     }
@@ -652,7 +821,7 @@ Chennai`
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Badge>
               <Users size={14} />
-              {activeCadets.length} Cadets Available
+              {activeDataset.length} Cadets in Database
             </Badge>
             <button
               onClick={loadDatabaseCadets}
@@ -684,74 +853,78 @@ Chennai`
           </NoticeAlert>
         )}
 
-        {/* MAIN 2-PANEL LAYOUT */}
+        {/* 2-COLUMN WORKSPACE */}
         <LayoutGrid>
-          {/* LEFT PANEL: PROGRAMME DETAILS & GENERATION FORM */}
+          {/* ======================================================== */}
+          {/* LEFT PANEL: OD LETTER DETAILS (MATCHING SCREENSHOT)      */}
+          {/* ======================================================== */}
           <PanelCard>
             <CardHeading>
-              <h2>
-                <Calendar size={18} color={ACCENT} />
-                Letter & Programme Details
-              </h2>
+              <h2>OD Letter Details</h2>
             </CardHeading>
 
+            {/* Row 1: From Date & To Date */}
             <TwoCols>
               <FormGroup>
-                <label>From Date *</label>
+                <label>From Date</label>
                 <input
                   type="date"
                   value={fromDate}
                   onChange={e => setFromDate(e.target.value)}
+                  placeholder="dd-mm-yyyy"
                 />
               </FormGroup>
               <FormGroup>
-                <label>To Date (Optional)</label>
+                <label>To Date</label>
                 <input
                   type="date"
                   value={toDate}
                   onChange={e => setToDate(e.target.value)}
-                  placeholder="Leave empty for 1 day"
+                  placeholder="dd-mm-yyyy"
                 />
               </FormGroup>
             </TwoCols>
 
-            <FormGroup>
-              <label>Programme Venue / Location *</label>
-              <input
-                type="text"
-                value={programLocation}
-                onChange={e => setProgramLocation(e.target.value)}
-                placeholder="e.g. Sri Sairam Engineering College / Marina Beach"
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <label>Purpose / Event Details</label>
-              <input
-                type="text"
-                value={programDetails}
-                onChange={e => setProgramDetails(e.target.value)}
-                placeholder="e.g. CATC Camp / Republic Day Parade Practice"
-              />
-            </FormGroup>
-
+            {/* Row 2: Program Location & Program Details */}
             <TwoCols>
               <FormGroup>
-                <label>Programme Timings</label>
+                <label>Program Location</label>
+                <input
+                  type="text"
+                  value={programLocation}
+                  onChange={e => setProgramLocation(e.target.value)}
+                  placeholder="Enter program location"
+                />
+              </FormGroup>
+              <FormGroup>
+                <label>Program Details (Optional)</label>
+                <input
+                  type="text"
+                  value={programDetails}
+                  onChange={e => setProgramDetails(e.target.value)}
+                  placeholder="Example: Annual Training Camp"
+                />
+              </FormGroup>
+            </TwoCols>
+
+            {/* Row 3: Time & Academic Year */}
+            <TwoCols>
+              <FormGroup>
+                <label>Time</label>
                 <input
                   type="text"
                   value={programTime}
                   onChange={e => setProgramTime(e.target.value)}
-                  placeholder="e.g. 09:00 AM to 04:00 PM"
+                  placeholder="Example: 10:00 AM to 04:00 PM"
                 />
               </FormGroup>
               <FormGroup>
-                <label>Cadet Academic Year</label>
+                <label>Academic Year</label>
                 <select
-                  value={academicYearOverride}
-                  onChange={e => setAcademicYearOverride(e.target.value)}
+                  value={academicYear}
+                  onChange={e => setAcademicYear(e.target.value)}
                 >
-                  <option value="">Auto (From Cadets)</option>
+                  <option value="">Auto / Optional</option>
                   <option value="I">I Year</option>
                   <option value="II">II Year</option>
                   <option value="III">III Year</option>
@@ -760,54 +933,49 @@ Chennai`
               </FormGroup>
             </TwoCols>
 
+            {/* Row 4: Yours Sincerely Name */}
             <FormGroup>
-              <label>Signatory ANO Name</label>
+              <label>Yours Sincerely Name</label>
               <input
                 type="text"
                 value={sincerelyName}
                 onChange={e => setSincerelyName(e.target.value)}
-                placeholder="e.g. Associate NCC Officer or Officer Name"
+                placeholder="ANO / Officer Name"
               />
             </FormGroup>
 
-            {/* ADVANCED ADDRESS BLOCK TOGGLE */}
-            <div style={{ marginTop: 12, marginBottom: 12 }}>
-              <button
-                type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                style={{
-                  background: 'none', border: 'none', padding: 0,
-                  fontSize: '0.8rem', fontWeight: 700, color: ACCENT,
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5
-                }}
-              >
-                <ChevronDown size={14} style={{ transform: showAdvanced ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />
-                {showAdvanced ? "Hide Official Address Blocks" : "Edit Official Address Blocks (From / To)"}
-              </button>
+            {/* Row 5: From Address */}
+            <FormGroup>
+              <label>From Address</label>
+              <textarea
+                rows={3}
+                value={fromAddress}
+                onChange={e => setFromAddress(e.target.value)}
+              />
+            </FormGroup>
 
-              {showAdvanced && (
-                <div style={{ marginTop: 12, padding: 12, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
-                  <FormGroup>
-                    <label>From Address</label>
-                    <textarea
-                      rows={3}
-                      value={fromAddress}
-                      onChange={e => setFromAddress(e.target.value)}
-                    />
-                  </FormGroup>
-                  <FormGroup style={{ margin: 0 }}>
-                    <label>To Address</label>
-                    <textarea
-                      rows={3}
-                      value={toAddress}
-                      onChange={e => setToAddress(e.target.value)}
-                    />
-                  </FormGroup>
-                </div>
-              )}
-            </div>
+            {/* Row 6: To Address */}
+            <FormGroup>
+              <label>To Address</label>
+              <textarea
+                rows={3}
+                value={toAddress}
+                onChange={e => setToAddress(e.target.value)}
+              />
+            </FormGroup>
 
-            {/* GENERATE BUTTON */}
+            {/* Row 7: Letter Content (Optional) */}
+            <FormGroup>
+              <label>Letter Content (Optional)</label>
+              <textarea
+                rows={4}
+                value={letterContent}
+                onChange={e => setLetterContent(e.target.value)}
+                placeholder="Leave blank to use the standard letter content."
+              />
+            </FormGroup>
+
+            {/* ACTION BUTTON */}
             <ActionButton
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
@@ -822,25 +990,24 @@ Chennai`
               ) : (
                 <>
                   <Download size={18} />
-                  Download OD Letter (.docx) ({selectedIds.size} Selected)
+                  Download OD Letter (.docx) ({selectedIds.size} Cadets Selected)
                 </>
               )}
             </ActionButton>
 
             <p style={{ fontSize: '0.78rem', color: '#64748b', textAlign: 'center', marginTop: 10, marginBottom: 0 }}>
-              Generates an official Microsoft Word file with table, formatted headers, and ANO signature block.
+              Generates an official Word document with formatted table, borders, margins, and ANO signature block.
             </p>
           </PanelCard>
 
-          {/* RIGHT PANEL: CADETS SELECTION FROM DATABASE */}
+          {/* ======================================================== */}
+          {/* RIGHT PANEL: SELECT CADETS WITH COLUMN SORTING           */}
+          {/* ======================================================== */}
           <PanelCard>
             <CardHeading>
-              <h2>
-                <Users size={18} color={ACCENT} />
-                Select Cadets from Database
-              </h2>
+              <h2>Select Cadets from Database</h2>
 
-              <DataSourceTabs style={{ margin: 0 }}>
+              <DataSourceTabs>
                 <DataSourceTab
                   $active={source === 'firestore'}
                   onClick={() => setSource('firestore')}
@@ -916,13 +1083,15 @@ Chennai`
               </FormGroup>
 
               <FormGroup style={{ margin: 0 }}>
-                <label>Year</label>
+                <label>Year / Status</label>
                 <select value={yearFilter} onChange={e => setYearFilter(e.target.value)}>
-                  <option value="ALL">All Years</option>
+                  <option value="ALL">All Cadets</option>
+                  <option value="ACTIVE_ONLY">Active Only (Excl. Passed Out)</option>
                   <option value="I Year">I Year</option>
                   <option value="II Year">II Year</option>
                   <option value="III Year">III Year</option>
                   <option value="IV Year">IV Year</option>
+                  <option value="PASSED_OUT">Passed Out Only</option>
                 </select>
               </FormGroup>
             </FilterGrid>
@@ -931,14 +1100,14 @@ Chennai`
             <SelectionBar style={{ marginTop: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <SelectAllBtn onClick={handleSelectAllFiltered}>
-                  {selectedIds.size === filteredCadets.length && filteredCadets.length > 0 ? (
+                  {selectedIds.size === sortedAndFilteredCadets.length && sortedAndFilteredCadets.length > 0 ? (
                     <CheckSquare size={16} color={ACCENT} />
                   ) : (
                     <Square size={16} color="#94a3b8" />
                   )}
-                  {selectedIds.size === filteredCadets.length && filteredCadets.length > 0
+                  {selectedIds.size === sortedAndFilteredCadets.length && sortedAndFilteredCadets.length > 0
                     ? "Deselect All Filtered"
-                    : `Select All Filtered (${filteredCadets.length})`}
+                    : `Select All Filtered (${sortedAndFilteredCadets.length})`}
                 </SelectAllBtn>
 
                 {selectedIds.size > 0 && (
@@ -956,7 +1125,7 @@ Chennai`
               </div>
             </SelectionBar>
 
-            {/* CADETS TABLE */}
+            {/* CADETS TABLE WITH COLUMN SORTING */}
             <TableWrapper>
               <StyledTable>
                 <thead>
@@ -964,17 +1133,54 @@ Chennai`
                     <th style={{ width: 44, textAlign: 'center' }}>
                       <input
                         type="checkbox"
-                        checked={filteredCadets.length > 0 && selectedIds.size === filteredCadets.length}
+                        checked={sortedAndFilteredCadets.length > 0 && selectedIds.size === sortedAndFilteredCadets.length}
                         onChange={handleSelectAllFiltered}
                         title="Select/Deselect All"
                       />
                     </th>
-                    <th style={{ width: 50 }}>S.No</th>
-                    <th>SEC ID / Regt No</th>
-                    <th>Cadet Name</th>
-                    <th>Dept</th>
-                    <th>Year</th>
-                    <th>Wing</th>
+                    <th
+                      className="sortable"
+                      style={{ width: 65 }}
+                      onClick={() => handleSort('sno')}
+                      title="Sort by S.No"
+                    >
+                      S.No {renderSortIndicator('sno')}
+                    </th>
+                    <th
+                      className="sortable"
+                      onClick={() => handleSort('secID')}
+                      title="Sort by SEC ID / Regt No"
+                    >
+                      SEC ID / Regt No {renderSortIndicator('secID')}
+                    </th>
+                    <th
+                      className="sortable"
+                      onClick={() => handleSort('name')}
+                      title="Sort by Cadet Name"
+                    >
+                      Cadet Name {renderSortIndicator('name')}
+                    </th>
+                    <th
+                      className="sortable"
+                      onClick={() => handleSort('dept')}
+                      title="Sort by Department"
+                    >
+                      Dept {renderSortIndicator('dept')}
+                    </th>
+                    <th
+                      className="sortable"
+                      onClick={() => handleSort('year')}
+                      title="Sort by Year"
+                    >
+                      Year {renderSortIndicator('year')}
+                    </th>
+                    <th
+                      className="sortable"
+                      onClick={() => handleSort('wing')}
+                      title="Sort by Wing"
+                    >
+                      Wing {renderSortIndicator('wing')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -985,54 +1191,77 @@ Chennai`
                         Loading Cadets from Website Database...
                       </td>
                     </tr>
-                  ) : filteredCadets.length === 0 ? (
+                  ) : sortedAndFilteredCadets.length === 0 ? (
                     <tr>
                       <td colSpan={7} style={{ textAlign: 'center', padding: '3.5rem 1rem', color: '#94a3b8' }}>
                         No cadets found matching your filter criteria.
                       </td>
                     </tr>
                   ) : (
-                    filteredCadets.map((cadet, index) => {
-                      const isSelected = selectedIds.has(cadet.id);
-                      return (
-                        <tr
-                          key={cadet.id}
-                          className={isSelected ? 'selected' : ''}
-                          onClick={() => handleToggleCadet(cadet.id)}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <td style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => handleToggleCadet(cadet.id)}
-                            />
-                          </td>
-                          <td style={{ fontWeight: 600, color: '#64748b' }}>{index + 1}</td>
-                          <td style={{ fontWeight: 700, color: NAVY }}>{cadet.secID}</td>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontWeight: 700 }}>{cadet.name}</span>
-                              {cadet.rank && cadet.rank !== 'CDT' && (
-                                <span style={{
-                                  fontSize: '0.7rem', padding: '1px 5px', borderRadius: 4,
-                                  background: '#fef3c7', color: '#92400e', fontWeight: 800
-                                }}>
-                                  {cadet.rank}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td style={{ fontWeight: 600 }}>{cadet.dept || '—'}</td>
-                          <td style={{ color: '#475569' }}>{cadet.year || '—'}</td>
-                          <td>
-                            <WingPill $wing={cadet.wing}>
-                              {cadet.wing || 'Army'}
-                            </WingPill>
-                          </td>
-                        </tr>
-                      );
-                    })
+                    (() => {
+                      let passedOutDividerShown = false;
+
+                      return sortedAndFilteredCadets.map((cadet, index) => {
+                        const isSelected = selectedIds.has(cadet.id);
+                        const isFirstPassedOut = cadet.isPassedOut && !passedOutDividerShown;
+                        if (isFirstPassedOut) {
+                          passedOutDividerShown = true;
+                        }
+
+                        return (
+                          <React.Fragment key={cadet.id}>
+                            {/* Passed out separator banner */}
+                            {isFirstPassedOut && (
+                              <DividerRow>
+                                <td colSpan={7}>
+                                  Passed Out Cadets (Listed at the bottom)
+                                </td>
+                              </DividerRow>
+                            )}
+
+                            <tr
+                              className={`${isSelected ? 'selected' : ''} ${cadet.isPassedOut ? 'passed-out' : ''}`}
+                              onClick={() => handleToggleCadet(cadet.id)}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              <td style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleToggleCadet(cadet.id)}
+                                />
+                              </td>
+                              <td style={{ fontWeight: 600, color: '#64748b' }}>{index + 1}</td>
+                              <td style={{ fontWeight: 700, color: NAVY }}>{cadet.secID}</td>
+                              <td>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ fontWeight: 700 }}>{cadet.name}</span>
+                                  {cadet.rank && cadet.rank !== 'CDT' && (
+                                    <span style={{
+                                      fontSize: '0.7rem', padding: '1px 5px', borderRadius: 4,
+                                      background: '#fef3c7', color: '#92400e', fontWeight: 800
+                                    }}>
+                                      {cadet.rank}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td style={{ fontWeight: 600 }}>{cadet.dept || '—'}</td>
+                              <td>
+                                <YearPill $isPassedOut={cadet.isPassedOut}>
+                                  {cadet.year || '—'}
+                                </YearPill>
+                              </td>
+                              <td>
+                                <WingPill $wing={cadet.wing}>
+                                  {cadet.wing || 'Army'}
+                                </WingPill>
+                              </td>
+                            </tr>
+                          </React.Fragment>
+                        );
+                      });
+                    })()
                   )}
                 </tbody>
               </StyledTable>
